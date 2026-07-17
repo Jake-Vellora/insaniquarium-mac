@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.jake.insaniquarium.steampatch</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>__REAPPLY_SH__</string>
+	</array>
+	<!-- Re-apply at login (before Steam autostarts)... -->
+	<key>RunAtLoad</key>
+	<true/>
+	<!-- ...and whenever Steam rewrites appinfo.vdf (e.g. reverts our edit on
+	     quit/sync). reapply.sh no-ops while Steam is running, so this only
+	     fires effectively once Steam is closed — ready for the next launch. -->
+	<key>WatchPaths</key>
+	<array>
+		<string>__APPINFO__</string>
+	</array>
+	<key>ThrottleInterval</key>
+	<integer>10</integer>
+	<key>StandardErrorPath</key>
+	<string>/tmp/insaniquarium-steampatch.log</string>
+	<key>StandardOutPath</key>
+	<string>/tmp/insaniquarium-steampatch.log</string>
+</dict>
+</plist>
