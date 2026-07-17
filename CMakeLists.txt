@@ -1,0 +1,134 @@
+cmake_minimum_required(VERSION 3.16...4.0)
+
+project(insaniquarium LANGUAGES C CXX)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if(CMAKE_GENERATOR MATCHES "Ninja")
+	set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+endif()
+
+set(PVZ_DIR ${CMAKE_CURRENT_SOURCE_DIR}/PvZ-Portable)
+set(SAF ${PVZ_DIR}/src/SexyAppFramework)
+set(WINFISH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/WinFish/source/WinFish)
+
+# Regenerate the flat include dir (WinFish includes <SexyAppFramework/Foo.h> flat-style)
+if(NOT EXISTS ${PVZ_DIR}/src/SexyAppFrameworkFlat/SexyAppFramework/SexyAppBase.h)
+	execute_process(
+		COMMAND bash ${PVZ_DIR}/scripts/create_flat_directory.sh
+		WORKING_DIRECTORY ${PVZ_DIR}/scripts
+	)
+endif()
+
+# ---------------- Dependencies ----------------
+find_package(Threads REQUIRED)
+find_package(ZLIB REQUIRED)
+find_package(JPEG REQUIRED)
+find_package(PNG REQUIRED)
+find_package(SDL2 REQUIRED)
+
+find_library(OGG_LIBRARY NAMES ogg libogg REQUIRED)
+find_library(VORBIS_LIBRARY NAMES vorbis libvorbis REQUIRED)
+find_library(VORBISFILE_LIBRARY NAMES vorbisfile libvorbisfile REQUIRED)
+find_library(OPENMPT_LIBRARY NAMES openmpt libopenmpt REQUIRED)
+find_library(MPG123_LIBRARY NAMES mpg123 libmpg123 REQUIRED)
+
+# Vendored SDL-Mixer-X (same option set PvZ-Portable uses)
+set(SDL_MIXER_X_STATIC ON CACHE BOOL "Build static library of SDL Mixer X")
+set(SDL_MIXER_X_SHARED OFF CACHE BOOL "Build shared library of SDL Mixer X")
+set(USE_MIDI OFF CACHE BOOL "SDL Mixer X midi")
+set(USE_MODPLUG OFF CACHE BOOL "SDL Mixer X modplug")
+set(USE_XMP OFF CACHE BOOL "SDL Mixer X xmp")
+set(USE_OPUS OFF CACHE BOOL "SDL Mixer X opus")
+set(USE_DRFLAC OFF CACHE BOOL "SDL Mixer X flac")
+set(USE_PXTONE OFF CACHE BOOL "SDL Mixer X pxtone")
+add_subdirectory(${SAF}/sound/SDL-Mixer-X)
+
+# ---------------- Sources ----------------
+file(GLOB FRAMEWORK_SOURCES
+	${SAF}/*.cpp
+	${SAF}/graphics/*.cpp
+	${SAF}/imagelib/*.cpp
+	${SAF}/misc/*.cpp
+	${SAF}/paklib/*.cpp
+	${SAF}/sound/*.cpp
+	${SAF}/widget/*.cpp
+	${SAF}/fcaseopen/*.c
+	${SAF}/ogg/*.c
+)
+list(APPEND FRAMEWORK_SOURCES
+	${SAF}/platform/default/Window.cpp
+	${SAF}/platform/default/Input.cpp
+)
+
+file(GLOB GAME_SOURCES ${WINFISH_DIR}/*.cpp)
+
+set(COMMON_INCLUDES
+	${SAF}/platform/default
+	${PVZ_DIR}/src/SexyAppFrameworkFlat
+	${PVZ_DIR}/src
+	${SAF}
+	${SAF}/sound/SDL-Mixer-X/include
+	${SDL2_INCLUDE_DIRS}
+)
+
+# Flags for 2004-era MSVC-targeted (and decompiled) code
+set(COMMON_C_FLAGS
+	-fsigned-char
+	-fno-strict-aliasing
+	-Wall
+	-Wreturn-type
+	-Wno-unused-variable
+	-Wno-unused-but-set-variable
+	-Wno-parentheses
+	-Wno-switch
+	-Wno-deprecated-declarations
+	-Wno-invalid-source-encoding
+	-Wno-writable-strings
+	-Wno-overloaded-virtual
+	-Wno-reorder-ctor
+	-Wno-delete-non-abstract-non-virtual-dtor
+)
+
+# ---------------- Framework (M0 gate: this compiles) ----------------
+add_library(sexyapp OBJECT ${FRAMEWORK_SOURCES})
+target_compile_definitions(sexyapp PRIVATE IMG_DOWNSCALE=1)
+target_include_directories(sexyapp PRIVATE ${COMMON_INCLUDES})
+target_compile_features(sexyapp PRIVATE cxx_std_20)
+set_target_properties(sexyapp PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(sexyapp PRIVATE ${COMMON_C_FLAGS})
+target_link_libraries(sexyapp PRIVATE
+	SDL2_mixer_ext_Static PNG::PNG JPEG::JPEG ZLIB::ZLIB SDL2::SDL2 Threads::Threads
+)
+
+set(COMMON_LIBS
+	SDL2_mixer_ext_Static
+	${OPENMPT_LIBRARY}
+	${MPG123_LIBRARY}
+	${VORBISFILE_LIBRARY}
+	${VORBIS_LIBRARY}
+	${OGG_LIBRARY}
+	PNG::PNG
+	JPEG::JPEG
+	ZLIB::ZLIB
+	SDL2::SDL2main
+	SDL2::SDL2
+	Threads::Threads
+)
+
+# ---------------- Game ----------------
+add_executable(insaniquarium ${GAME_SOURCES} $<TARGET_OBJECTS:sexyapp>)
+target_compile_definitions(insaniquarium PRIVATE IMG_DOWNSCALE=1)
+target_include_directories(insaniquarium PRIVATE ${COMMON_INCLUDES} ${WINFISH_DIR})
+target_compile_features(insaniquarium PRIVATE cxx_std_20)
+set_target_properties(insaniquarium PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(insaniquarium PRIVATE ${COMMON_C_FLAGS})
+target_link_libraries(insaniquarium PRIVATE ${COMMON_LIBS})
+
+# ---------------- M1 rendering spike ----------------
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/spike/main.cpp)
+	add_executable(spike ${CMAKE_CURRENT_SOURCE_DIR}/spike/main.cpp $<TARGET_OBJECTS:sexyapp>)
+	target_include_directories(spike PRIVATE ${COMMON_INCLUDES})
+	target_compile_features(spike PRIVATE cxx_std_20)
+	target_compile_options(spike PRIVATE ${COMMON_C_FLAGS})
+	target_link_libraries(spike PRIVATE ${COMMON_LIBS})
+endif()
