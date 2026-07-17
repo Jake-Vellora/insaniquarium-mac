@@ -46,8 +46,13 @@ static void SaverFileLog(NSString* theMessage)
 {
 	NSLog(@"InsaniqSaver: %@", theMessage);
 	NSString* aPath = [SaverAppSupportDir() stringByAppendingPathComponent:@"InsaniqSaver.log"];
+	// Start the log over past 512KB so it can't grow unbounded.
+	NSDictionary* anAttrs = [[NSFileManager defaultManager]
+		attributesOfItemAtPath:aPath error:nil];
+	const char* aMode = (anAttrs != nil &&
+		[anAttrs fileSize] > 512 * 1024) ? "w" : "a";
 	NSString* aLine = [NSString stringWithFormat:@"%@ %@\n", [NSDate date], theMessage];
-	FILE* aFile = fopen(aPath.fileSystemRepresentation, "a");
+	FILE* aFile = fopen(aPath.fileSystemRepresentation, aMode);
 	if (aFile != nullptr)
 	{
 		fputs(aLine.UTF8String, aFile);
