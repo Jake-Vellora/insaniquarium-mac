@@ -27,7 +27,35 @@
 #include <SexyAppFramework/GLInterface.h>
 #include <SexyAppFramework/WidgetManager.h>
 
-#define SAVER_LOG(fmt, ...) NSLog(@"InsaniqSaver: " fmt, ##__VA_ARGS__)
+// App extensions get sanitized environments and their NSLog output is often
+// invisible, so diagnostics also go to a file in Application Support (which
+// the sandbox transparently redirects into the legacyScreenSaver container).
+static NSString* SaverAppSupportDir(void)
+{
+	static NSString* aDir = nil;
+	if (aDir == nil)
+	{
+		NSArray* aPaths = NSSearchPathForDirectoriesInDomains(
+			NSApplicationSupportDirectory, NSUserDomainMask, YES);
+		aDir = aPaths.count > 0 ? aPaths[0] : @"/tmp";
+	}
+	return aDir;
+}
+
+static void SaverFileLog(NSString* theMessage)
+{
+	NSLog(@"InsaniqSaver: %@", theMessage);
+	NSString* aPath = [SaverAppSupportDir() stringByAppendingPathComponent:@"InsaniqSaver.log"];
+	NSString* aLine = [NSString stringWithFormat:@"%@ %@\n", [NSDate date], theMessage];
+	FILE* aFile = fopen(aPath.fileSystemRepresentation, "a");
+	if (aFile != nullptr)
+	{
+		fputs(aLine.UTF8String, aFile);
+		fclose(aFile);
+	}
+}
+
+#define SAVER_LOG(fmt, ...) SaverFileLog([NSString stringWithFormat:fmt, ##__VA_ARGS__])
 
 @class InsaniquariumSaverView;
 
@@ -110,6 +138,24 @@ static void SaverSwapHook()
 {
 	[theContext makeCurrentContext];
 
+	static NSMutableSet* aDrawLogged = nil;
+	if (aDrawLogged == nil)
+		aDrawLogged = [NSMutableSet set];
+	NSValue* aKey = [NSValue valueWithPointer:(__bridge void*)self];
+	if (![aDrawLogged containsObject:aKey])
+	{
+		[aDrawLogged addObject:aKey];
+		SAVER_LOG(@"first draw for view %p (owner %p) %ldx%ld",
+			self.hostView, gOwnerView,
+			(long)(self.bounds.size.width * self.contentsScale),
+			(long)(self.bounds.size.height * self.contentsScale));
+	}
+
+	// A drawing instance may claim the game if nobody owns it yet — the host
+	// sometimes never starts animation on the instance that actually draws.
+	if (gOwnerView == nil)
+		gOwnerView = self.hostView;
+
 	if (self.hostView != gOwnerView)
 	{
 		glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -151,10 +197,17 @@ static void SaverSwapHook()
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	// The layer surface is recycled between frames; force a full redraw.
+	// Advance game logic, then force the draw: UpdateApp returns right after
+	// an update succeeds, so Process()'s own draw branch (taken only on
+	// no-update-due iterations) would never run under host-driven pumping.
+	gSaverApp->UpdateApp();
 	if (gSaverApp->mWidgetManager != nullptr)
 		gSaverApp->mWidgetManager->MarkAllDirty();
-	gSaverApp->UpdateApp();
+	gSaverApp->DrawDirtyStuff();
+
+	static long aPumpCount = 0;
+	if ((++aPumpCount % 120) == 1)
+		SAVER_LOG(@"pump %ld flushes %ld (view %p)", aPumpCount, Sexy::gGLFlushCount, self.hostView);
 
 	[super drawInOpenGLContext:theContext pixelFormat:thePixelFormat
 		forLayerTime:theTime displayTime:theDisplayTime];
@@ -184,7 +237,9 @@ static void SaverSwapHook()
 {
 	InsaniqGLLayer* aLayer = [InsaniqGLLayer layer];
 	aLayer.hostView = self;
-	aLayer.asynchronous = NO;
+	// CoreAnimation drives the draw loop; the modern saver host calls
+	// startAnimation off-main with no runloop, so timers are unreliable.
+	aLayer.asynchronous = YES;
 	aLayer.needsDisplayOnBoundsChange = YES;
 	aLayer.contentsScale = self.window != nil ? self.window.backingScaleFactor : 2.0;
 	return aLayer;
@@ -217,12 +272,16 @@ static void SaverSwapHook()
 	gOwnerView = self;
 	SAVER_LOG(@"startAnimation, owner now %p", self);
 
-	if (mFrameTimer == nil)
-	{
-		mFrameTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 / 30.0
-			target:self selector:@selector(tick) userInfo:nil repeats:YES];
-		[[NSRunLoop currentRunLoop] addTimer:mFrameTimer forMode:NSRunLoopCommonModes];
-	}
+	// Belt-and-braces alongside the asynchronous layer; scheduled on the main
+	// runloop because the host may call startAnimation from a threadpool.
+	dispatch_async(dispatch_get_main_queue(), ^{
+		if (self->mFrameTimer == nil)
+		{
+			self->mFrameTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 / 30.0
+				target:self selector:@selector(tick) userInfo:nil repeats:YES];
+			[[NSRunLoop mainRunLoop] addTimer:self->mFrameTimer forMode:NSRunLoopCommonModes];
+		}
+	});
 }
 
 - (void)tick
@@ -248,6 +307,23 @@ static void SaverSwapHook()
 	setenv("SDL_VIDEODRIVER", "dummy", 1);
 	setenv("SDL_AUDIODRIVER", "dummy", 1);
 
+	// Verification hook: a control file beside the installed bundle (readable
+	// in-sandbox) carrying a frame number arms the frame-dump; the PNG lands
+	// in (container-redirected) Application Support.
+	NSString* aControl = [[[aBundle bundlePath] stringByDeletingLastPathComponent]
+		stringByAppendingPathComponent:@"insaniq-autoshot.control"];
+	NSString* aFrame = [NSString stringWithContentsOfFile:aControl
+		encoding:NSUTF8StringEncoding error:nil];
+	aFrame = [aFrame stringByTrimmingCharactersInSet:
+		[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+	if (aFrame.length > 0)
+	{
+		NSString* aShot = [NSString stringWithFormat:@"%@/insaniq-saver-proof.png:%@",
+			SaverAppSupportDir(), aFrame];
+		setenv("INSANIQ_AUTOSHOT", aShot.UTF8String, 1);
+		SAVER_LOG(@"autoshot armed: %@", aShot);
+	}
+
 	CGSize aSize = self.bounds.size;
 	CGFloat aScale = self.layer != nil ? self.layer.contentsScale : 2.0;
 	Sexy::gGLHostDrawableWidth = (int)(aSize.width * aScale);
@@ -261,11 +337,14 @@ static void SaverSwapHook()
 	gSaverApp->mResourceDir = std::string([aResources fileSystemRepresentation]) + "/";
 	Sexy::ChDir(gSaverApp->mResourceDir);
 
-	// Read the player's real tank data when the sandbox allows; writes are
-	// container-redirected, which is fine for a display-only saver.
-	NSString* aSaveDir = [@"~/Library/Application Support/PopCap/Insaniquarium/"
-		stringByExpandingTildeInPath];
+	// Tank data lives under Application Support/PopCap/Insaniquarium. Resolved
+	// via NSSearchPath so the sandbox maps it into the legacyScreenSaver
+	// container — the game app syncs its saves there so the saver can see
+	// them (the sandbox cannot read the real per-user save dir).
+	NSString* aSaveDir = [SaverAppSupportDir()
+		stringByAppendingPathComponent:@"PopCap/Insaniquarium"];
 	gSaverApp->mCustomSaveDir = std::string([aSaveDir fileSystemRepresentation]) + "/";
+	SAVER_LOG(@"save dir %@", aSaveDir);
 
 	gSaverApp->Init();
 	if (gSaverApp->mGLInterface == nullptr)
