@@ -27,6 +27,16 @@ dylibbundler -of -cd -b \
 	-x "$APP/Contents/MacOS/insaniquarium" \
 	-d "$APP/Contents/Frameworks" \
 	-p @executable_path/../Frameworks/ >/dev/null
+
+# Steamworks presence (appid 3320): bundled only if the SDK dylib has been
+# dropped in packaging/ (needs a free Steamworks login to download).
+if [ -f packaging/libsteam_api.dylib ]; then
+	cp packaging/libsteam_api.dylib "$APP/Contents/Frameworks/"
+	echo "bundled libsteam_api.dylib (Steam presence enabled)"
+else
+	echo "note: packaging/libsteam_api.dylib not found — Steam presence disabled"
+fi
+
 codesign --force --deep -s - "$APP"
 
 echo "packaged $APP"
