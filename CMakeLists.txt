@@ -124,6 +124,28 @@ set_target_properties(insaniquarium PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(insaniquarium PRIVATE ${COMMON_C_FLAGS})
 target_link_libraries(insaniquarium PRIVATE ${COMMON_LIBS})
 
+# ---------------- Asset staging (Steam copy is read-only source) ----------------
+set(INSANIQUARIUM_ASSETS_DIR "/Users/jake/games/insaniquarium" CACHE PATH
+	"Path to the owned Insaniquarium Deluxe install (read-only asset source)")
+if(NOT EXISTS ${INSANIQUARIUM_ASSETS_DIR}/properties/resources.xml)
+	message(FATAL_ERROR "Insaniquarium assets not found at ${INSANIQUARIUM_ASSETS_DIR}")
+endif()
+
+set(ASSET_DIRS images sounds music fishsongs data properties)
+set(STAGED_ASSETS ${CMAKE_BINARY_DIR}/assets)
+add_custom_command(OUTPUT ${STAGED_ASSETS}/.staged
+	COMMENT "Staging game assets from ${INSANIQUARIUM_ASSETS_DIR}"
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${STAGED_ASSETS})
+foreach(d ${ASSET_DIRS})
+	add_custom_command(OUTPUT ${STAGED_ASSETS}/.staged APPEND
+		COMMAND ${CMAKE_COMMAND} -E copy_directory
+			${INSANIQUARIUM_ASSETS_DIR}/${d} ${STAGED_ASSETS}/${d})
+endforeach()
+add_custom_command(OUTPUT ${STAGED_ASSETS}/.staged APPEND
+	COMMAND ${CMAKE_COMMAND} -E touch ${STAGED_ASSETS}/.staged)
+add_custom_target(stage_assets DEPENDS ${STAGED_ASSETS}/.staged)
+add_dependencies(insaniquarium stage_assets)
+
 # ---------------- M1 rendering spike ----------------
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/spike/main.cpp)
 	add_executable(spike ${CMAKE_CURRENT_SOURCE_DIR}/spike/main.cpp $<TARGET_OBJECTS:sexyapp>)
