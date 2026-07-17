@@ -79,6 +79,11 @@ static GLuint gFrameTex[2] = { 0, 0 };
 static volatile int gPublishedTex = -1;
 static volatile int gSharedFrameW = 0;
 static volatile int gSharedFrameH = 0;
+static volatile double gLastPublishTime = 0;
+// Layers draw on separate CA threads; only one may pump the game at a time,
+// or concurrent owners race the viewport/aspect globals (visible as the
+// tank flickering between stretched and normal during instance churn).
+static NSLock* gPumpLock = [[NSLock alloc] init];
 
 static void SaverSwapHook()
 {
@@ -167,17 +172,26 @@ static void SaverSwapHook()
 			(long)(self.bounds.size.height * self.contentsScale));
 	}
 
-	// A drawing instance may claim the game if nobody owns it yet — the host
-	// sometimes never starts animation on the instance that actually draws.
-	// A substantially larger surface also takes over, so the game never
-	// renders at grid-thumbnail resolution while fullscreen mirrors it.
+	// Ownership transfers only for cause — first claim, a substantially
+	// larger surface (resolution upgrade), or a stale owner that stopped
+	// publishing (its instance was stopped or discarded by the host).
 	int aMyW = (int)(self.bounds.size.width * self.contentsScale);
 	int aMyH = (int)(self.bounds.size.height * self.contentsScale);
-	if (gOwnerView == nil ||
+	double aNow = CACurrentMediaTime();
+	bool anOwnerStale = gLastPublishTime > 0 && aNow - gLastPublishTime > 0.5;
+	if (gOwnerView == nil || anOwnerStale ||
 		(aMyW * aMyH > gSharedFrameW * gSharedFrameH * 3 / 2 && gSharedFrameW > 0))
 		gOwnerView = self.hostView;
 
 	if (self.hostView != gOwnerView)
+	{
+		[self drawMirroredFrame];
+		return;
+	}
+
+	// Serialize the pump: a sibling instance may still be mid-frame from
+	// before an ownership change. If contended, just mirror this frame.
+	if (![gPumpLock tryLock])
 	{
 		[self drawMirroredFrame];
 		return;
@@ -273,6 +287,8 @@ static void SaverSwapHook()
 	gSharedFrameW = aCopyW;
 	gSharedFrameH = aCopyH;
 	gPublishedTex = aBack;
+	gLastPublishTime = CACurrentMediaTime();
+	[gPumpLock unlock];
 
 	static long aPumpCount = 0;
 	if ((++aPumpCount % 120) == 1)
@@ -381,10 +397,12 @@ static void SaverSwapHook()
 - (void)startAnimation
 {
 	[super startAnimation];
-	// Most recent instance wins: the Settings preview may have claimed the
-	// game first; the real fullscreen instance takes over here.
-	gOwnerView = self;
-	SAVER_LOG(@"startAnimation, owner now %p", self);
+	// Claim only when unowned — unconditional stealing made ownership churn
+	// during instance startup bursts. Larger surfaces and stale owners are
+	// handled in the draw path.
+	if (gOwnerView == nil)
+		gOwnerView = self;
+	SAVER_LOG(@"startAnimation %p (owner %p)", self, gOwnerView);
 
 	// Belt-and-braces alongside the asynchronous layer; scheduled on the main
 	// runloop because the host may call startAnimation from a threadpool.

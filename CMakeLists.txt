@@ -174,6 +174,7 @@ target_link_libraries(insaniquarium-saver PRIVATE
 	"-framework ScreenSaver"
 	"-framework Cocoa"
 	"-framework OpenGL"
+	"-framework QuartzCore"
 )
 
 add_executable(saverhost ${CMAKE_CURRENT_SOURCE_DIR}/saver/SaverHost.mm)
