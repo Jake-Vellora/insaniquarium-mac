@@ -70,6 +70,15 @@ static InsaniquariumSaverView* gOwnerView = nil;
 static bool gGameInitTried = false;
 static bool gGameInitOK = false;
 
+// The owner instance copies each finished frame here (contexts share one
+// group), and every other instance mirrors it — so the Settings preview,
+// grid thumbnail, and all displays show the tank at once. Double-buffered:
+// mirrors run on other CA threads and must never sample a mid-copy texture.
+static GLuint gFrameTex[2] = { 0, 0 };
+static volatile int gPublishedTex = -1;
+static volatile int gSharedFrameW = 0;
+static volatile int gSharedFrameH = 0;
+
 static void SaverSwapHook()
 {
 	// The NSOpenGLLayer presents when drawInOpenGLContext returns; the game's
@@ -86,6 +95,7 @@ static void SaverSwapHook()
 
 @interface InsaniqGLLayer : NSOpenGLLayer
 @property(nonatomic, assign) InsaniquariumSaverView* hostView;
+- (void)drawMirroredFrame;
 @end
 
 @implementation InsaniqGLLayer
@@ -158,13 +168,17 @@ static void SaverSwapHook()
 
 	// A drawing instance may claim the game if nobody owns it yet — the host
 	// sometimes never starts animation on the instance that actually draws.
-	if (gOwnerView == nil)
+	// A substantially larger surface also takes over, so the game never
+	// renders at grid-thumbnail resolution while fullscreen mirrors it.
+	int aMyW = (int)(self.bounds.size.width * self.contentsScale);
+	int aMyH = (int)(self.bounds.size.height * self.contentsScale);
+	if (gOwnerView == nil ||
+		(aMyW * aMyH > gSharedFrameW * gSharedFrameH * 3 / 2 && gSharedFrameW > 0))
 		gOwnerView = self.hostView;
 
 	if (self.hostView != gOwnerView)
 	{
-		glClearColor(0.f, 0.f, 0.f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		[self drawMirroredFrame];
 		return;
 	}
 
@@ -210,12 +224,83 @@ static void SaverSwapHook()
 		gSaverApp->mWidgetManager->MarkAllDirty();
 	gSaverApp->DrawDirtyStuff();
 
+	// Publish the finished frame (just the game's 4:3 presentation rect, not
+	// this surface's letterbox bars) for mirror instances.
+	if (gFrameTex[0] == 0)
+		glGenTextures(2, gFrameTex);
+	int aBack = (gPublishedTex + 1) & 1;
+	Sexy::GLInterface* aGL = gSaverApp->mGLInterface;
+	int aCopyX = 0, aCopyY = 0, aCopyW = aWidth, aCopyH = aHeight;
+	if (aGL != nullptr && aGL->mPresentationRect.mWidth > 0)
+	{
+		aCopyX = aGL->mPresentationRect.mX;
+		aCopyY = aGL->mPresentationRect.mY;
+		aCopyW = aGL->mPresentationRect.mWidth;
+		aCopyH = aGL->mPresentationRect.mHeight;
+	}
+	glBindTexture(GL_TEXTURE_2D, gFrameTex[aBack]);
+	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, aCopyX, aCopyY, aCopyW, aCopyH, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glFlush();
+	gSharedFrameW = aCopyW;
+	gSharedFrameH = aCopyH;
+	gPublishedTex = aBack;
+
 	static long aPumpCount = 0;
 	if ((++aPumpCount % 120) == 1)
 		SAVER_LOG(@"pump %ld flushes %ld (view %p)", aPumpCount, Sexy::gGLFlushCount, self.hostView);
 
 	[super drawInOpenGLContext:theContext pixelFormat:thePixelFormat
 		forLayerTime:theTime displayTime:theDisplayTime];
+}
+
+// Draw the owner's published frame letterboxed into this layer (legacy
+// fixed-function GL — these contexts never run the game's shader state).
+- (void)drawMirroredFrame
+{
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	int aTexIndex = gPublishedTex;
+	if (aTexIndex < 0 || gSharedFrameW <= 0 || gSharedFrameH <= 0)
+		return;
+
+	int aMyW = (int)(self.bounds.size.width * self.contentsScale);
+	int aMyH = (int)(self.bounds.size.height * self.contentsScale);
+	if (aMyW <= 0 || aMyH <= 0)
+		return;
+	glViewport(0, 0, aMyW, aMyH);
+
+	// Letterbox the source aspect into this surface, in NDC.
+	float aScaleX = 1.f;
+	float aScaleY = 1.f;
+	float aSrcAspect = (float)gSharedFrameW / (float)gSharedFrameH;
+	float aDstAspect = (float)aMyW / (float)aMyH;
+	if (aDstAspect > aSrcAspect)
+		aScaleX = aSrcAspect / aDstAspect;
+	else
+		aScaleY = aDstAspect / aSrcAspect;
+
+	glUseProgram(0);
+	glDisable(GL_BLEND);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, gFrameTex[aTexIndex]);
+	glColor4f(1.f, 1.f, 1.f, 1.f);
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.f, 0.f); glVertex2f(-aScaleX, -aScaleY);
+	glTexCoord2f(1.f, 0.f); glVertex2f(aScaleX, -aScaleY);
+	glTexCoord2f(1.f, 1.f); glVertex2f(aScaleX, aScaleY);
+	glTexCoord2f(0.f, 1.f); glVertex2f(-aScaleX, aScaleY);
+	glEnd();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_TEXTURE_2D);
 }
 
 @end
