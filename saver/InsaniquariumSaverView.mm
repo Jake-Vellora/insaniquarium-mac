@@ -25,6 +25,7 @@
 #include "WinFishApp.h"
 #include <SexyAppFramework/SexyAppBase.h>
 #include <SexyAppFramework/GLInterface.h>
+#include <SexyAppFramework/GLImage.h>
 #include <SexyAppFramework/WidgetManager.h>
 
 // App extensions get sanitized environments and their NSLog output is often
@@ -193,6 +194,29 @@ static void SaverSwapHook()
 		glClearColor(0.f, 0.f, 0.f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		return;
+	}
+
+	// Shader programs are not shared across the context group: if ownership
+	// moved to an instance with a different GL context (e.g. the user
+	// switched savers and back, creating a fresh view), rebuild them there.
+	static NSOpenGLContext* gGameContext = nil;
+	if (gGameContext != theContext)
+	{
+		if (gGameContext != nil)
+		{
+			SAVER_LOG(@"game moving to new GL context; rebuilding shaders");
+			Sexy::gGLForceContextReinit = true;
+			gSaverApp->mGLInterface->Init(false);
+			if (gSaverApp->mWidgetManager != nullptr)
+			{
+				gSaverApp->mWidgetManager->mImage = gSaverApp->mGLInterface->GetScreenImage();
+				gSaverApp->mWidgetManager->MarkAllDirty();
+			}
+			// Force viewport/remap refresh for the new surface.
+			Sexy::gGLHostDrawableWidth = 0;
+			Sexy::gGLHostDrawableHeight = 0;
+		}
+		gGameContext = theContext;
 	}
 
 	// Track this layer's backing size (per display / preview scaling)
