@@ -2,11 +2,22 @@
 // loads the bundle, instantiates its ScreenSaverView, runs it in a window.
 #import <Cocoa/Cocoa.h>
 #import <ScreenSaver/ScreenSaver.h>
+#include <execinfo.h>
+
+static void ExitTrace(void)
+{
+	void* frames[32];
+	int n = backtrace(frames, 32);
+	char** syms = backtrace_symbols(frames, n);
+	for (int i = 0; i < n; i++)
+		fprintf(stderr, "EXITTRACE %s\n", syms[i]);
+}
 
 int main(int argc, char* argv[])
 {
 	@autoreleasepool
 	{
+		atexit(ExitTrace);
 		if (argc < 2)
 		{
 			fprintf(stderr, "usage: SaverHost <path-to.saver>\n");
@@ -42,6 +53,8 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "SaverHost: view init failed\n");
 			return 1;
 		}
+		// Match the real legacyScreenSaver host: layer-backed hierarchy
+		[aWindow.contentView setWantsLayer:YES];
 		[aWindow setContentView:aView];
 		[aWindow makeKeyAndOrderFront:nil];
 		[aWindow center];
