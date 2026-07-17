@@ -80,6 +80,28 @@ static volatile int gPublishedTex = -1;
 static volatile int gSharedFrameW = 0;
 static volatile int gSharedFrameH = 0;
 static volatile double gLastPublishTime = 0;
+static double gDataMTimeAtInit = 0;
+
+// Newest modification time among the tank-data files the saver rendered from.
+static double SaverDataMTime(void)
+{
+	NSString* aDir = [[SaverAppSupportDir()
+		stringByAppendingPathComponent:@"PopCap/Insaniquarium/userdata"] copy];
+	NSArray* aFiles = [[NSFileManager defaultManager]
+		contentsOfDirectoryAtPath:aDir error:nil];
+	double aNewest = 0;
+	for (NSString* aName in aFiles)
+	{
+		if (![aName hasSuffix:@".dat"])
+			continue;
+		NSDictionary* anAttrs = [[NSFileManager defaultManager]
+			attributesOfItemAtPath:[aDir stringByAppendingPathComponent:aName] error:nil];
+		double aTime = [[anAttrs fileModificationDate] timeIntervalSinceReferenceDate];
+		if (aTime > aNewest)
+			aNewest = aTime;
+	}
+	return aNewest;
+}
 // Layers draw on separate CA threads; only one may pump the game at a time,
 // or concurrent owners race the viewport/aspect globals (visible as the
 // tank flickering between stretched and normal during instance churn).
@@ -404,6 +426,27 @@ static void SaverSwapHook()
 		gOwnerView = self;
 	SAVER_LOG(@"startAnimation %p (owner %p)", self, gOwnerView);
 
+	// The host process is long-lived and the game loads tank data exactly
+	// once; if the game app has since written newer saves, restart cleanly
+	// (rate-limited — repeated rapid exits make macOS deselect the saver as
+	// crash recovery) so this activation shows the current tank.
+	if (gGameInitOK && gDataMTimeAtInit > 0 && SaverDataMTime() > gDataMTimeAtInit + 1)
+	{
+		NSString* aMarker = [SaverAppSupportDir()
+			stringByAppendingPathComponent:@"InsaniqSaver.restart"];
+		NSDictionary* anAttrs = [[NSFileManager defaultManager]
+			attributesOfItemAtPath:aMarker error:nil];
+		double aLast = [[anAttrs fileModificationDate] timeIntervalSinceReferenceDate];
+		double aNow = [NSDate timeIntervalSinceReferenceDate];
+		if (aNow - aLast > 120)
+		{
+			[[NSFileManager defaultManager] createFileAtPath:aMarker
+				contents:[NSData data] attributes:nil];
+			SAVER_LOG(@"tank data changed since load; restarting saver host");
+			exit(0);
+		}
+	}
+
 	// Belt-and-braces alongside the asynchronous layer; scheduled on the main
 	// runloop because the host may call startAnimation from a threadpool.
 	dispatch_async(dispatch_get_main_queue(), ^{
@@ -484,6 +527,7 @@ static void SaverSwapHook()
 		SAVER_LOG(@"Init produced no GLInterface (GL setup failed)");
 		return NO;
 	}
+	gDataMTimeAtInit = SaverDataMTime();
 
 	// Mirror SexyAppBase::Start()'s preamble; frames come from the layer.
 	gSaverApp->StartLoadingThread();
