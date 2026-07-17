@@ -146,6 +146,44 @@ add_custom_command(OUTPUT ${STAGED_ASSETS}/.staged APPEND
 add_custom_target(stage_assets DEPENDS ${STAGED_ASSETS}/.staged)
 add_dependencies(insaniquarium stage_assets)
 
+# ---------------- macOS screensaver (.saver) ----------------
+enable_language(OBJCXX)
+set(SAVER_GAME_SOURCES ${GAME_SOURCES})
+list(REMOVE_ITEM SAVER_GAME_SOURCES ${WINFISH_DIR}/Window.cpp)
+
+add_library(insaniquarium-saver MODULE
+	${SAVER_GAME_SOURCES}
+	${CMAKE_CURRENT_SOURCE_DIR}/saver/InsaniquariumSaverView.mm
+	$<TARGET_OBJECTS:sexyapp>
+)
+set_target_properties(insaniquarium-saver PROPERTIES
+	BUNDLE TRUE
+	BUNDLE_EXTENSION "saver"
+	OUTPUT_NAME "Insaniquarium"
+	MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/saver/Info.plist
+	CXX_EXTENSIONS OFF
+)
+target_compile_definitions(insaniquarium-saver PRIVATE IMG_DOWNSCALE=1)
+target_include_directories(insaniquarium-saver PRIVATE ${COMMON_INCLUDES} ${WINFISH_DIR})
+target_compile_features(insaniquarium-saver PRIVATE cxx_std_20)
+target_compile_options(insaniquarium-saver PRIVATE ${COMMON_C_FLAGS})
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/saver/InsaniquariumSaverView.mm
+	PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+target_link_libraries(insaniquarium-saver PRIVATE
+	${COMMON_LIBS}
+	"-framework ScreenSaver"
+	"-framework Cocoa"
+	"-framework OpenGL"
+)
+
+add_executable(saverhost ${CMAKE_CURRENT_SOURCE_DIR}/saver/SaverHost.mm)
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/saver/SaverHost.mm
+	PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+target_link_libraries(saverhost PRIVATE
+	"-framework ScreenSaver"
+	"-framework Cocoa"
+)
+
 # ---------------- M1 rendering spike ----------------
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/spike/main.cpp)
 	add_executable(spike ${CMAKE_CURRENT_SOURCE_DIR}/spike/main.cpp $<TARGET_OBJECTS:sexyapp>)
