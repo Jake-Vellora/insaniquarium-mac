@@ -29,7 +29,12 @@ def show(path):
     print("launch:", ai["config"].get("launch"))
 
 
-WANT_LAUNCH = {"executable": "run.sh", "type": "default", "config": {"oslist": "macos"}}
+WANT_LAUNCH = {
+    "executable": "run.sh",
+    "type": "default",
+    "description": "Native macOS",
+    "config": {"oslist": "macos"},
+}
 
 
 def inject(path):
@@ -37,18 +42,26 @@ def inject(path):
     ai = app_sections(a)
     oslist = ai["common"].get("oslist") or "windows"
     parts = [p for p in oslist.split(",") if p]
+    launch = ai["config"].setdefault("launch", {})
+    # Valve's original entry 0 (Insaniquarium.exe) has no oslist, so the Mac
+    # client treats it as valid too and shows a two-option picker whose first
+    # choice crashes. Restrict it to windows so macOS sees exactly one entry.
+    entry0_ok = launch.get("0", {}).get("config", {}).get("oslist") == "windows"
     # Idempotent: no write when already in the desired state, so a file-watch
     # reapply can't loop on its own edits.
-    if "macos" in parts and ai["config"].get("launch", {}).get("1") == WANT_LAUNCH:
+    if "macos" in parts and launch.get("1") == WANT_LAUNCH and entry0_ok:
         print("already injected; no change")
         return
     if "macos" not in parts:
         parts.append("macos")
     ai["common"]["oslist"] = ",".join(parts)
-    ai["config"].setdefault("launch", {})["1"] = dict(WANT_LAUNCH)
+    if "0" in launch:
+        launch["0"].setdefault("config", {})["oslist"] = "windows"
+    launch["1"] = dict(WANT_LAUNCH)
     a.update_app(APPID)
     a.write_data()
-    print("injected: oslist=%s, launch/1=run.sh (macos)" % ai["common"]["oslist"])
+    print("injected: oslist=%s, launch/0=windows-only, launch/1=run.sh (macos)"
+          % ai["common"]["oslist"])
 
 
 def revert(path):
@@ -62,6 +75,11 @@ def revert(path):
         del ai["common"]["oslist"]
     launch = ai["config"].get("launch", {})
     launch.pop("1", None)
+    # Restore Valve's original unrestricted entry 0
+    if launch.get("0", {}).get("config", {}).get("oslist") == "windows":
+        del launch["0"]["config"]["oslist"]
+        if not launch["0"]["config"]:
+            del launch["0"]["config"]
     a.update_app(APPID)
     a.write_data()
     print("reverted 3320 appinfo edits")
