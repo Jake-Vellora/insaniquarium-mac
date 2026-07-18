@@ -14,11 +14,9 @@ INSTALLDIR="Insaniquarium Deluxe"
 pgrep -x steam_osx >/dev/null && exit 0
 [ -f "$APPINFO" ] || exit 0
 
+# edit_appinfo directly (not inject.sh --phase appinfo) to avoid a .bak file
+# per WatchPaths fire; the .orig from the first inject already exists.
 python3 "$DIR/edit_appinfo.py" inject "$APPINFO" >/dev/null 2>&1 || exit 0
 
-# Ensure the launch symlink + manifest are present too (cheap, idempotent).
-mkdir -p "$STEAM/steamapps/common/$INSTALLDIR"
-[ -L "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium" ] || \
-  ln -sf /Applications/Insaniquarium.app/Contents/MacOS/insaniquarium \
-         "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium"
-[ -f "$STEAM/steamapps/appmanifest_3320.acf" ] || "$DIR/inject.sh" >/dev/null 2>&1 || true
+# Ensure symlink + manifest are present (idempotent; keeps a Steam-written acf).
+"$DIR/inject.sh" --phase finalize >/dev/null 2>&1 || true

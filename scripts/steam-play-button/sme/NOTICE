@@ -1,0 +1,4 @@
+appinfo.py is vendored unmodified from Steam-Metadata-Editor
+(https://github.com/tralph3/Steam-Metadata-Editor), copyright tralph3,
+licensed under the GNU GPL v3.0. It is used here to parse and rewrite
+Steam's appinfo.vdf (v29) with correct size + SHA-1 checksums.

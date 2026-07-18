@@ -2,4 +2,3 @@ build/
 PvZ-Portable/
 WinFish/
 .DS_Store
-packaging/libsteam_api.dylib

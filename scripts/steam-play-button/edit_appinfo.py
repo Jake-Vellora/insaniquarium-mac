@@ -7,8 +7,11 @@ field + two SHA-1 checksums; a raw hex edit is rejected. This uses the parser's
 update_app() to recompute size + both checksums. Steam MUST be quit.
 
 Usage:
-  edit_appinfo.py inject <appinfo.vdf>   # add macos oslist + launch/1 -> run.sh
-  edit_appinfo.py revert <appinfo.vdf>   # remove them
+  edit_appinfo.py inject <appinfo.vdf>   # add macos oslist + native launch/1
+  edit_appinfo.py inject <appinfo.vdf> --with-depot-oslist
+                                         # + platform-tag depot 3321 (contingency
+                                         #   if the Mac client won't offer Install)
+  edit_appinfo.py revert <appinfo.vdf>   # remove all of the above
   edit_appinfo.py show   <appinfo.vdf>   # print current 3320 oslist + launch
 """
 import os
@@ -43,8 +46,17 @@ WANT_LAUNCH = {
     "config": {"oslist": "macos"},
 }
 
+# Contingency (inject --with-depot-oslist): explicitly platform-tag depot 3321
+# so the Mac client can't filter it out when computing an Install. The depot
+# currently ships with NO oslist (= all platforms), so this is normally
+# unnecessary — only try it if the library shows "not available on macOS" or
+# Install downloads nothing. Transient: only needed until the depot is on disk,
+# so the durability reapply (plain inject) not preserving it is fine.
+DEPOT = "3321"
+WANT_DEPOT_OSLIST = "windows,macos"
 
-def inject(path):
+
+def inject(path, with_depot_oslist=False):
     a = Appinfo(path, choose_apps=True, apps=[APPID])
     ai = app_sections(a)
     oslist = ai["common"].get("oslist") or "windows"
@@ -54,9 +66,13 @@ def inject(path):
     # client treats it as valid too and shows a two-option picker whose first
     # choice crashes. Restrict it to windows so macOS sees exactly one entry.
     entry0_ok = launch.get("0", {}).get("config", {}).get("oslist") == "windows"
+    depot_cfg = ai.get("depots", {}).get(DEPOT, {}).get("config", {})
+    depot_ok = (not with_depot_oslist
+                or depot_cfg.get("oslist") == WANT_DEPOT_OSLIST)
     # Idempotent: no write when already in the desired state, so a file-watch
     # reapply can't loop on its own edits.
-    if "macos" in parts and launch.get("1") == WANT_LAUNCH and entry0_ok:
+    if "macos" in parts and launch.get("1") == WANT_LAUNCH and entry0_ok \
+            and depot_ok:
         print("already injected; no change")
         return
     if "macos" not in parts:
@@ -65,10 +81,14 @@ def inject(path):
     if "0" in launch:
         launch["0"].setdefault("config", {})["oslist"] = "windows"
     launch["1"] = dict(WANT_LAUNCH)
+    if with_depot_oslist:
+        ai["depots"][DEPOT].setdefault("config", {})["oslist"] = WANT_DEPOT_OSLIST
     a.update_app(APPID)
     a.write_data()
-    print("injected: oslist=%s, launch/0=windows-only, launch/1=%s (macos)"
-          % (ai["common"]["oslist"], WANT_LAUNCH["executable"]))
+    print("injected: oslist=%s, launch/0=windows-only, launch/1=%s (macos)%s"
+          % (ai["common"]["oslist"], WANT_LAUNCH["executable"],
+             ", depot %s oslist=%s" % (DEPOT, WANT_DEPOT_OSLIST)
+             if with_depot_oslist else ""))
 
 
 def revert(path):
@@ -87,12 +107,25 @@ def revert(path):
         del launch["0"]["config"]["oslist"]
         if not launch["0"]["config"]:
             del launch["0"]["config"]
+    # Undo the depot-oslist contingency if it was applied
+    depot_cfg = ai.get("depots", {}).get(DEPOT, {}).get("config", {})
+    if depot_cfg.get("oslist") == WANT_DEPOT_OSLIST:
+        del depot_cfg["oslist"]
+        if not depot_cfg:
+            del ai["depots"][DEPOT]["config"]
     a.update_app(APPID)
     a.write_data()
     print("reverted 3320 appinfo edits")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3 or sys.argv[1] not in ("inject", "revert", "show"):
+    args = sys.argv[1:]
+    with_depot = "--with-depot-oslist" in args
+    args = [x for x in args if x != "--with-depot-oslist"]
+    if len(args) != 2 or args[0] not in ("inject", "revert", "show") \
+            or (with_depot and args[0] != "inject"):
         sys.exit(__doc__)
-    {"inject": inject, "revert": revert, "show": show}[sys.argv[1]](sys.argv[2])
+    if args[0] == "inject":
+        inject(args[1], with_depot_oslist=with_depot)
+    else:
+        {"revert": revert, "show": show}[args[0]](args[1])
