@@ -25,11 +25,14 @@ echo "backed up appinfo.vdf -> $BAK"
 # 2. Inject oslist + macos launch entry (recomputes size + both SHA-1s)
 python3 edit_appinfo.py inject "$APPINFO"
 
-# 3. Install dir + launch wrapper
+# 3. Install dir + direct-exec symlink to the app binary (preserves the
+#    Steam overlay's DYLD injection, which a shell wrapper would strip).
 mkdir -p "$STEAM/steamapps/common/$INSTALLDIR"
-cp run.sh "$STEAM/steamapps/common/$INSTALLDIR/run.sh"
+ln -sf /Applications/Insaniquarium.app/Contents/MacOS/insaniquarium \
+       "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium"
+cp run.sh "$STEAM/steamapps/common/$INSTALLDIR/run.sh"   # kept as a fallback
 chmod +x "$STEAM/steamapps/common/$INSTALLDIR/run.sh"
-echo "installed run.sh into steamapps/common/$INSTALLDIR"
+echo "installed launch symlink + run.sh fallback into steamapps/common/$INSTALLDIR"
 
 # 4. Fully-installed manifest (StateFlags 4). Correct gid => Steam sees it as
 #    up to date and does not queue a download. No platform_override.

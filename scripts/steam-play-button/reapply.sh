@@ -16,10 +16,9 @@ pgrep -x steam_osx >/dev/null && exit 0
 
 python3 "$DIR/edit_appinfo.py" inject "$APPINFO" >/dev/null 2>&1 || exit 0
 
-# Ensure the wrapper + manifest are present too (cheap, idempotent).
+# Ensure the launch symlink + manifest are present too (cheap, idempotent).
 mkdir -p "$STEAM/steamapps/common/$INSTALLDIR"
-[ -f "$STEAM/steamapps/common/$INSTALLDIR/run.sh" ] || {
-  cp "$DIR/run.sh" "$STEAM/steamapps/common/$INSTALLDIR/run.sh"
-  chmod +x "$STEAM/steamapps/common/$INSTALLDIR/run.sh"
-}
+[ -L "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium" ] || \
+  ln -sf /Applications/Insaniquarium.app/Contents/MacOS/insaniquarium \
+         "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium"
 [ -f "$STEAM/steamapps/appmanifest_3320.acf" ] || "$DIR/inject.sh" >/dev/null 2>&1 || true

@@ -29,8 +29,15 @@ def show(path):
     print("launch:", ai["config"].get("launch"))
 
 
+# Point Steam directly at the game binary (a symlink in the install dir ->
+# the app's Mach-O). A direct exec preserves Steam's injected
+# DYLD_INSERT_LIBRARIES so the in-game overlay (Shift+Tab) works, which a
+# shell wrapper (#!/bin/sh is SIP-restricted) and `open` both strip.
+# Confirmed safe: SDL_GetBasePath resolves the bundle Resources via CFBundle,
+# @executable_path/../Frameworks rpath resolves from the real path, and there
+# is no single-instance lock (HandleGameAlreadyRunning is never called).
 WANT_LAUNCH = {
-    "executable": "run.sh",
+    "executable": "insaniquarium",
     "type": "default",
     "description": "Native macOS",
     "config": {"oslist": "macos"},
@@ -60,8 +67,8 @@ def inject(path):
     launch["1"] = dict(WANT_LAUNCH)
     a.update_app(APPID)
     a.write_data()
-    print("injected: oslist=%s, launch/0=windows-only, launch/1=run.sh (macos)"
-          % ai["common"]["oslist"])
+    print("injected: oslist=%s, launch/0=windows-only, launch/1=%s (macos)"
+          % (ai["common"]["oslist"], WANT_LAUNCH["executable"]))
 
 
 def revert(path):
