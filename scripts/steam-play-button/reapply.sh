@@ -1,22 +1,47 @@
 #!/bin/bash
-# Durability: keep appid 3320's macOS launch entry present so its real Steam
-# Play button survives Steam's appinfo re-sync. Only acts when Steam is NOT
-# running (editing appinfo mid-session is pointless — Steam has it cached and
-# rewrites on exit). Idempotent: writes only when the edit is actually missing,
-# so a file-watch trigger cannot loop on its own edits.
+# Durability: keep appid 3320's injected macOS record present so the real
+# Steam Play button survives. Two jobs:
+#
+#  1. Keep the ON-DISK appinfo.vdf injected at ALL times — even while Steam
+#     runs. The running client never re-reads the file mid-session, so a disk
+#     repair is invisible to it; what it buys is that EVERY Steam start boots
+#     from an injected record. (The client can still refetch pristine metadata
+#     mid-session — the Play button then degrades until the next Steam
+#     restart, which now always heals instantly, with no timing race.)
+#  2. When Steam is NOT running, also ensure the manifest via
+#     inject.sh --phase finalize (never fight the client over its own acf).
+#
+# Loop-safe: when the record is already injected the editor changes nothing,
+# cmp sees no diff, nothing is written — so the WatchPaths trigger cannot
+# loop on our own edits. The write is atomic (edit a temp copy, rename over)
+# so a booting Steam can never read a half-written cache.
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 STEAM="$HOME/Library/Application Support/Steam"
 APPINFO="$STEAM/appcache/appinfo.vdf"
 INSTALLDIR="Insaniquarium Deluxe"
 
-# Don't touch appinfo while Steam is running.
-pgrep -x steam_osx >/dev/null && exit 0
 [ -f "$APPINFO" ] || exit 0
 
-# edit_appinfo directly (not inject.sh --phase appinfo) to avoid a .bak file
-# per WatchPaths fire; the .orig from the first inject already exists.
-python3 "$DIR/edit_appinfo.py" inject "$APPINFO" >/dev/null 2>&1 || exit 0
+TMP="$APPINFO.reapply.$$"
+trap 'rm -f "$TMP"' EXIT
+cp "$APPINFO" "$TMP"
+if ! python3 "$DIR/edit_appinfo.py" inject "$TMP" >/dev/null 2>&1; then
+  exit 0   # unparseable snapshot (Steam mid-write?) — the next fire retries
+fi
+if ! cmp -s "$TMP" "$APPINFO"; then
+  mv "$TMP" "$APPINFO"
+  trap - EXIT
+  echo "$(date '+%F %T') re-injected appinfo (steam $(pgrep -x steam_osx >/dev/null && echo running || echo quit))"
+fi
 
-# Ensure symlink + manifest are present (idempotent; keeps a Steam-written acf).
-"$DIR/inject.sh" --phase finalize >/dev/null 2>&1 || true
+# The launch symlink is safe to ensure at any time.
+mkdir -p "$STEAM/steamapps/common/$INSTALLDIR"
+[ -e "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium" ] || \
+  ln -sf /Applications/Insaniquarium.app/Contents/MacOS/insaniquarium \
+         "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium"
+
+# Manifest/run.sh (acf writes) only while Steam is closed.
+if ! pgrep -x steam_osx >/dev/null; then
+  "$DIR/inject.sh" --phase finalize >/dev/null 2>&1 || true
+fi
