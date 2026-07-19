@@ -18,6 +18,12 @@
 	<array>
 		<string>__APPINFO__</string>
 	</array>
+	<!-- Steam can revert the record mid-session and then quit WITHOUT
+	     rewriting appinfo.vdf (memory already matched disk) — no WatchPaths
+	     event, no repair. The periodic tick closes that gap: reapply no-ops
+	     while Steam runs and when the record is already injected. -->
+	<key>StartInterval</key>
+	<integer>300</integer>
 	<key>ThrottleInterval</key>
 	<integer>10</integer>
 	<key>StandardErrorPath</key>
