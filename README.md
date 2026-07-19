@@ -23,6 +23,38 @@ One command. It builds everything locally and walks you through the rest.
 - Xcode Command Line Tools and [Homebrew](https://brew.sh) (setup.sh installs
   or prompts for both if missing)
 
+## Setup, step by step
+
+1. **Steam first**: install Steam, sign in, and make sure *Insaniquarium!
+   Deluxe* appears in your Library (owned or family-shared — enable the
+   shared-games filter if needed). Open its library page once so Steam caches
+   the game's record. **Don't click Install** — the script handles that.
+2. Open Terminal and run:
+   ```
+   git clone https://github.com/Jake-Vellora/insaniquarium-mac.git
+   cd insaniquarium-mac
+   ./setup.sh
+   ```
+3. Follow the prompts. Three things are normal:
+   - A popup may ask to install the **command line developer tools** — click
+     Install, wait for it to finish, then run `./setup.sh` again.
+   - The script asks to **quit Steam** — say `y`. (It offers to install
+     Homebrew too if you don't have it; the build takes ~5–10 minutes.)
+   - Steam reopens and **downloads the game files by itself**, then shows a
+     "missing executable" error — that's expected mid-setup; just close it.
+4. The script finishes with two things macOS makes you do by hand:
+   - **Full Disk Access** for `/Applications/Insaniquarium.app` (System
+     Settings opens for you; stops a recurring permission prompt).
+   - **System Settings → Screen Saver** → pick *Insaniquarium*.
+5. Open Steam, hit **Play**. Shift+Tab is the overlay; the screensaver is
+   your actual tank, and its coin earnings flow back into the game.
+
+Notes: don't click Install or "Verify integrity" on the game in Steam's own
+UI — those force a metadata refresh that undoes the script's work (it
+self-heals, but why poke it). If Play ever shows as "Install / Available for
+Windows", quit Steam and reopen it. `./setup.sh` and `./setup.sh verify` are
+always safe to rerun.
+
 ## How it works
 
 1. **The port**: the game code comes from the public
