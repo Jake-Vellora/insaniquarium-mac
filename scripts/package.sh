@@ -34,7 +34,7 @@ if [ -f packaging/libsteam_api.dylib ]; then
 	cp packaging/libsteam_api.dylib "$APP/Contents/Frameworks/"
 	echo "bundled libsteam_api.dylib (Steam presence enabled)"
 else
-	echo "note: packaging/libsteam_api.dylib not found — Steam presence disabled"
+	echo "note: packaging/libsteam_api.dylib not found - Steam presence disabled"
 fi
 
 codesign --force --deep -s - "$APP"

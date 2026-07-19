@@ -2,7 +2,7 @@
 # Build the private distributable tarball (payload mode of setup.sh):
 # prebuilt asset-free app + saver skeletons, the Steam-patch scripts, setup.sh,
 # README, and (by default) git bundles of all three repos for provenance.
-# The tarball contains NO game assets — the recipient's own Steam supplies them.
+# The tarball contains NO game assets - the recipient's own Steam supplies them.
 # Usage: make-dist.sh [--no-source]
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -41,7 +41,7 @@ cp scripts/dist/README.md "$DIST/README.md"
 cp VERSIONS "$DIST/VERSIONS"
 chmod +x "$DIST/setup.sh" "$DIST/scripts/"*.sh
 
-# 4. Source bundles — the only way to rebuild if the dev machine dies
+# 4. Source bundles - the only way to rebuild if the dev machine dies
 if [ "$NOSOURCE" = 0 ]; then
 	mkdir -p "$DIST/src"
 	git bundle create "$DIST/src/insaniquarium-mac.bundle" --all
@@ -60,11 +60,11 @@ fi
 for b in Insaniquarium.app Insaniquarium.saver; do
 	codesign --verify --deep --strict "$DIST/payload/$b"
 	if otool -L "$DIST/payload/$b/Contents/MacOS/"* | grep -q /opt/homebrew; then
-		echo "error: $b links /opt/homebrew dylibs — not relocatable"; exit 1
+		echo "error: $b links /opt/homebrew dylibs - not relocatable"; exit 1
 	fi
 	for d in images sounds music fishsongs data properties; do
 		if [ -e "$DIST/payload/$b/Contents/Resources/$d" ]; then
-			echo "error: $b still contains asset dir '$d' — must ship asset-free"; exit 1
+			echo "error: $b still contains asset dir '$d' - must ship asset-free"; exit 1
 		fi
 	done
 done

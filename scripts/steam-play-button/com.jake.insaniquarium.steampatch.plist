@@ -13,7 +13,7 @@
 	<true/>
 	<!-- ...and whenever Steam rewrites appinfo.vdf (e.g. reverts our edit on
 	     quit/sync). reapply.sh no-ops while Steam is running, so this only
-	     fires effectively once Steam is closed — ready for the next launch. -->
+	     fires effectively once Steam is closed - ready for the next launch. -->
 	<key>WatchPaths</key>
 	<array>
 		<string>__APPINFO__</string>

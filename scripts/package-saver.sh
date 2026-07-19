@@ -21,7 +21,7 @@ done
 # @loader_path (not @executable_path): the saver is loaded by legacyScreenSaver,
 # so paths must resolve relative to the saver binary itself.
 # The bundle is patched in place (unlike the app, which is rebuilt from the
-# bare binary each time), so skip when a previous run already patched it —
+# bare binary each time), so skip when a previous run already patched it -
 # a fresh CMake link resets the binary to /opt/homebrew paths and re-triggers.
 if otool -L "$SAVER/Contents/MacOS/Insaniquarium" | grep -q /opt/homebrew; then
 	dylibbundler -of -cd -b \

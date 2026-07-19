@@ -9,7 +9,7 @@ APPINFO="$STEAM/appcache/appinfo.vdf"
 INSTALLDIR="Insaniquarium Deluxe"
 
 if pgrep -x steam_osx >/dev/null; then
-  echo "error: Steam is running — quit it first"; exit 1
+  echo "error: Steam is running - quit it first"; exit 1
 fi
 
 # Prefer the pristine .orig; fall back to editing the keys back out.

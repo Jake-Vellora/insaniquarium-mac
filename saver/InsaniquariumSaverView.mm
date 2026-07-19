@@ -11,7 +11,7 @@
 // - own NSTimer -> setNeedsDisplay, never animateOneFrame
 // - the game binds to the MOST RECENT view to startAnimation (the Settings
 //   preview may instantiate first; the real fullscreen instance then takes
-//   over) — stale instances draw black
+//   over) - stale instances draw black
 // - com.apple.screensaver.willstop => exit(0) so piled-up instances can't
 //   leak the GL context
 #import <ScreenSaver/ScreenSaver.h>
@@ -72,7 +72,7 @@ static bool gGameInitTried = false;
 static bool gGameInitOK = false;
 
 // The owner instance copies each finished frame here (contexts share one
-// group), and every other instance mirrors it — so the Settings preview,
+// group), and every other instance mirrors it - so the Settings preview,
 // grid thumbnail, and all displays show the tank at once. Double-buffered:
 // mirrors run on other CA threads and must never sample a mid-copy texture.
 static GLuint gFrameTex[2] = { 0, 0 };
@@ -194,7 +194,7 @@ static void SaverSwapHook()
 			(long)(self.bounds.size.height * self.contentsScale));
 	}
 
-	// Ownership transfers only for cause — first claim, a substantially
+	// Ownership transfers only for cause - first claim, a substantially
 	// larger surface (resolution upgrade), or a stale owner that stopped
 	// publishing (its instance was stopped or discarded by the host).
 	int aMyW = (int)(self.bounds.size.width * self.contentsScale);
@@ -321,7 +321,7 @@ static void SaverSwapHook()
 }
 
 // Draw the owner's published frame letterboxed into this layer (legacy
-// fixed-function GL — these contexts never run the game's shader state).
+// fixed-function GL - these contexts never run the game's shader state).
 - (void)drawMirroredFrame
 {
 	glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -419,7 +419,7 @@ static void SaverSwapHook()
 - (void)startAnimation
 {
 	[super startAnimation];
-	// Claim only when unowned — unconditional stealing made ownership churn
+	// Claim only when unowned - unconditional stealing made ownership churn
 	// during instance startup bursts. Larger surfaces and stale owners are
 	// handled in the draw path.
 	if (gOwnerView == nil)
@@ -428,7 +428,7 @@ static void SaverSwapHook()
 
 	// The host process is long-lived and the game loads tank data exactly
 	// once; if the game app has since written newer saves, restart cleanly
-	// (rate-limited — repeated rapid exits make macOS deselect the saver as
+	// (rate-limited - repeated rapid exits make macOS deselect the saver as
 	// crash recovery) so this activation shows the current tank.
 	if (gGameInitOK && gDataMTimeAtInit > 0 && SaverDataMTime() > gDataMTimeAtInit + 1)
 	{
@@ -514,7 +514,7 @@ static void SaverSwapHook()
 
 	// Tank data lives under Application Support/PopCap/Insaniquarium. Resolved
 	// via NSSearchPath so the sandbox maps it into the legacyScreenSaver
-	// container — the game app syncs its saves there so the saver can see
+	// container - the game app syncs its saves there so the saver can see
 	// them (the sandbox cannot read the real per-user save dir).
 	NSString* aSaveDir = [SaverAppSupportDir()
 		stringByAppendingPathComponent:@"PopCap/Insaniquarium"];

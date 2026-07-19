@@ -8,7 +8,7 @@
 #   appinfo   patch appinfo.vdf only (oslist + launch entries). setup.sh runs
 #             this BEFORE asset download so Steam treats 3320 as macOS-native.
 #   pending   write an update-required appmanifest (StateFlags 2). On the next
-#             steam://run/3320, Steam downloads depot 3321 itself — the only
+#             steam://run/3320, Steam downloads depot 3321 itself - the only
 #             asset-acquisition path that works: the install wizard and
 #             validate both force a fresh per-app metadata fetch that reverts
 #             the appinfo edit before acting ("Invalid platform"), while the
@@ -37,9 +37,9 @@ done
 case "$PHASE" in appinfo|pending|finalize|all) ;; *) echo "error: bad --phase '$PHASE'"; exit 2;; esac
 
 if pgrep -x steam_osx >/dev/null; then
-  echo "error: Steam is running — quit it first (osascript -e 'quit app \"Steam\"')"; exit 1
+  echo "error: Steam is running - quit it first (osascript -e 'quit app \"Steam\"')"; exit 1
 fi
-[ -f "$APPINFO" ] || { echo "error: $APPINFO not found — is Steam installed and signed in?"; exit 1; }
+[ -f "$APPINFO" ] || { echo "error: $APPINFO not found - is Steam installed and signed in?"; exit 1; }
 
 # SteamID64 of the local user, for the appmanifest's LastOwner field.
 # Prefer loginusers.vdf's MostRecent entry (keys are already SteamID64s);
@@ -106,7 +106,7 @@ do_pending() {
 	"ScheduledAutoUpdate"		"0"
 }
 EOF
-  echo "wrote pending appmanifest (StateFlags 2) — steam://run/3320 will download the depot"
+  echo "wrote pending appmanifest (StateFlags 2) - steam://run/3320 will download the depot"
 }
 
 do_finalize() {
@@ -121,7 +121,7 @@ do_finalize() {
 
   local acf="$STEAM/steamapps/appmanifest_3320.acf"
   # If Steam wrote a fully-installed manifest itself (the user clicked Install
-  # after the appinfo phase), keep it verbatim — Steam's own LastOwner is the
+  # after the appinfo phase), keep it verbatim - Steam's own LastOwner is the
   # ground truth, which matters on Family Sharing machines.
   if [ -f "$acf" ] && grep -q '"StateFlags"[[:space:]]*"4"' "$acf" \
                    && grep -q "\"installdir\"[[:space:]]*\"$INSTALLDIR\"" "$acf"; then

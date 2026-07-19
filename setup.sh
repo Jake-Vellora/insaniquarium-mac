@@ -44,7 +44,7 @@ steam_running() { pgrep -x steam_osx >/dev/null; }
 
 quit_steam() {
   steam_running || return 0
-  ask "Steam is running and must be quit — quit it now?" || die "quit Steam, then rerun"
+  ask "Steam is running and must be quit - quit it now?" || die "quit Steam, then rerun"
   osascript -e 'quit app "Steam"' >/dev/null 2>&1 || true
   local i
   for i in $(seq 1 30); do steam_running || return 0; sleep 1; done
@@ -63,12 +63,12 @@ preflight() {
   [ "${EUID:-$(id -u)}" -ne 0 ] || die "do not run as root"
   if ! xcode-select -p >/dev/null 2>&1; then
     echo "Apple's Command Line Tools are required (python3$([ "$MODE" = source ] && echo ", compilers"))."
-    echo "A system dialog will open — click Install, wait for it, then RERUN ./setup.sh."
+    echo "A system dialog will open - click Install, wait for it, then RERUN ./setup.sh."
     xcode-select --install || true
     exit 1
   fi
-  python3 -c 'import hashlib' 2>/dev/null || die "python3 not working — reinstall the Command Line Tools"
-  [ -f "$APPINFO" ] || die "Steam not found or never signed in ($APPINFO missing) — install Steam, sign in, rerun"
+  python3 -c 'import hashlib' 2>/dev/null || die "python3 not working - reinstall the Command Line Tools"
+  [ -f "$APPINFO" ] || die "Steam not found or never signed in ($APPINFO missing) - install Steam, sign in, rerun"
   if ! python3 "$SP/edit_appinfo.py" show "$APPINFO" >/dev/null 2>&1; then
     cat <<'MSG'
 Steam has no cached record of Insaniquarium (appid 3320) yet.
@@ -108,7 +108,7 @@ clone_pin() { # repo ref dir
 install_skeletons() {
   say "[1/6] Installing app + screensaver (asset-free skeletons)"
   pgrep -f "Insaniquarium.app/Contents/MacOS|Insaniquarium Deluxe/insaniquarium" >/dev/null \
-    && die "Insaniquarium is running — quit it first"
+    && die "Insaniquarium is running - quit it first"
   rm -rf "$APP"
   ditto "$BASE/payload/Insaniquarium.app" "$APP"
   mkdir -p "$HOME/Library/Screen Savers"
@@ -157,17 +157,17 @@ MSG
     pause "Finished and Steam is quit?"
     quit_steam
     local d="$STEAM/steamapps/content/app_3320/depot_3321"
-    valid_assets "$d" || die "depot not found at '$d' — rerun, or use --assets <dir>"
+    valid_assets "$d" || die "depot not found at '$d' - rerun, or use --assets <dir>"
     ASSETS_SRC="$d"
     return
   fi
   if valid_assets "$GAMEDIR"; then
-    echo "Steam already has the game files in '$GAMEDIR' — reusing them."
+    echo "Steam already has the game files in '$GAMEDIR' - reusing them."
     ASSETS_SRC="$GAMEDIR"
     return
   fi
   # Path A (default, no clicks): mark the game update-required (StateFlags 2)
-  # and trigger steam://run/3320 — Steam's updater downloads depot 3321 itself
+  # and trigger steam://run/3320 - Steam's updater downloads depot 3321 itself
   # under your own license (family-shared included). This is the ONLY reliable
   # route: the Install wizard and steam://validate both force a fresh per-app
   # metadata fetch that reverts our appinfo edit before acting ("Invalid
@@ -179,8 +179,8 @@ MSG
     # is dropped again by the durability agent's plain re-inject later).
     python3 "$PORTHOME/edit_appinfo.py" inject "$APPINFO" --with-depot-oslist
     "$PORTHOME/inject.sh" --phase pending
-    echo "Starting Steam — it will download the game files (~11 MB) by itself."
-    echo "NOTE: Steam will then show 'missing executable' — that's expected at"
+    echo "Starting Steam - it will download the game files (~11 MB) by itself."
+    echo "NOTE: Steam will then show 'missing executable' - that's expected at"
     echo "this stage (the launch wiring comes later). Just close that dialog."
     open -a Steam
     local i
@@ -195,7 +195,7 @@ MSG
       sleep 3
     done
     if valid_assets "$GAMEDIR"; then ASSETS_SRC="$GAMEDIR"; return; fi
-    echo "Game files not in '$GAMEDIR' yet (attempt $attempt) — retrying."
+    echo "Game files not in '$GAMEDIR' yet (attempt $attempt) - retrying."
   done
   die "Steam didn't download the game files. Options:
   - rerun ./setup.sh to try again
@@ -239,7 +239,7 @@ finalize_steam() {
 manual_tail() {
   say "[6/6] Two manual steps (macOS doesn't let scripts do these)"
   cat <<MSG
-1) FULL DISK ACCESS — stops a recurring "access data from other apps" prompt
+1) FULL DISK ACCESS - stops a recurring "access data from other apps" prompt
    (the game and the screensaver share your tank through a sandboxed folder):
    System Settings will open on Privacy & Security > Full Disk Access.
    Click "+", press Cmd+Shift+G, type "/Applications/Insaniquarium.app",
@@ -253,7 +253,7 @@ MSG
 2) SCREENSAVER: System Settings > Screen Saver > pick "Insaniquarium".
    (macOS may ask once to allow the legacy screen saver engine.)
 
-All set! Start Steam and hit Play on Insaniquarium! Deluxe — the native app
+All set! Start Steam and hit Play on Insaniquarium! Deluxe - the native app
 launches, Shift+Tab opens the Steam overlay, and the screensaver shows your
 actual tank. Run "./setup.sh verify" any time to health-check the install.
 MSG
@@ -292,7 +292,7 @@ if [ "$CMD" = verify ]; then
   exit 0
 fi
 
-echo "Insaniquarium native macOS port — one-step setup ($MODE mode)"
+echo "Insaniquarium native macOS port - one-step setup ($MODE mode)"
 preflight
 if [ "$MODE" = source ]; then bootstrap_source; fi
 if [ "$MODE" = payload ]; then install_skeletons; fi

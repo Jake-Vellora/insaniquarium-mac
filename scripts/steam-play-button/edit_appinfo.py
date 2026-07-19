@@ -49,7 +49,7 @@ WANT_LAUNCH = {
 # Contingency (inject --with-depot-oslist): explicitly platform-tag depot 3321
 # so the Mac client can't filter it out when computing an Install. The depot
 # currently ships with NO oslist (= all platforms), so this is normally
-# unnecessary — only try it if the library shows "not available on macOS" or
+# unnecessary - only try it if the library shows "not available on macOS" or
 # Install downloads nothing. Transient: only needed until the depot is on disk,
 # so the durability reapply (plain inject) not preserving it is fine.
 DEPOT = "3321"

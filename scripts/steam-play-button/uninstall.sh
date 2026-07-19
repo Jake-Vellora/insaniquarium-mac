@@ -7,7 +7,7 @@
 #   --pristine     restore appinfo.vdf from the .orig backup instead of
 #                  surgically reverting the 3320 edits (both are safe; appinfo
 #                  is a cache Steam re-syncs from its servers anyway)
-#   --purge-saves  ALSO delete profiles/tanks (PopCap save dirs) — off by default
+#   --purge-saves  ALSO delete profiles/tanks (PopCap save dirs) - off by default
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -25,10 +25,10 @@ for arg in "$@"; do
 done
 
 if pgrep -x steam_osx >/dev/null; then
-  echo "error: Steam is running — quit it first (osascript -e 'quit app \"Steam\"')"; exit 1
+  echo "error: Steam is running - quit it first (osascript -e 'quit app \"Steam\"')"; exit 1
 fi
 
-# 1. Durability agent FIRST — nothing may reapply while we tear down.
+# 1. Durability agent FIRST - nothing may reapply while we tear down.
 AGENT="$HOME/Library/LaunchAgents/com.jake.insaniquarium.steampatch.plist"
 if [ -f "$AGENT" ]; then
   launchctl unload "$AGENT" 2>/dev/null || true
@@ -55,7 +55,7 @@ rm -rf "$HOME/Library/Screen Savers/Insaniquarium.saver"
 rm -rf "$HOME/Library/Application Support/Insaniquarium-port"
 echo "removed Insaniquarium.app, Insaniquarium.saver, Insaniquarium-port scripts"
 
-# 5. Saves (opt-in). Only the PopCap subpaths — never the saver container itself.
+# 5. Saves (opt-in). Only the PopCap subpaths - never the saver container itself.
 if [ "$PURGE" = 1 ]; then
   rm -rf "$HOME/Library/Application Support/PopCap/Insaniquarium"
   rm -rf "$HOME/Library/Containers/com.apple.ScreenSaver.Engine.legacyScreenSaver/Data/Library/Application Support/PopCap/Insaniquarium"
@@ -67,5 +67,5 @@ fi
 echo
 echo "uninstall complete. Two manual leftovers, both harmless:"
 echo "  - System Settings > Privacy & Security > Full Disk Access still lists"
-echo "    Insaniquarium (dangling row) — remove it with the minus button."
+echo "    Insaniquarium (dangling row) - remove it with the minus button."
 echo "  - If Insaniquarium was your active screensaver, pick another one."
