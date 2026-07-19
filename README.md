@@ -14,6 +14,11 @@ cd insaniquarium-mac
 
 One command. It builds everything locally and walks you through the rest.
 
+> **Before you run it:** be signed in to Steam with *Insaniquarium! Deluxe*
+> visible in your Library (family-shared counts), and open the game's library
+> page once. **Don't click Install** — the script does that part itself.
+> Full walkthrough in [Setup, step by step](#setup-step-by-step).
+
 ## Requirements
 
 - Apple Silicon Mac (M1 or newer)
