@@ -14,6 +14,7 @@
 #   ./setup.sh                  full install (interactive; run in Terminal)
 #   ./setup.sh --assets <dir>   use an existing "Insaniquarium Deluxe" folder
 #   ./setup.sh --console-fetch  fetch assets via Steam's console (owners only)
+#   ./setup.sh --update         swap app+saver to the newest build (keeps saves)
 #   ./setup.sh verify           health-check an existing install
 set -euo pipefail
 
@@ -39,6 +40,14 @@ say()   { printf '\n\033[1m%s\033[0m\n' "$*"; }
 die()   { echo "error: $*" >&2; exit 1; }
 ask()   { local a; read -r -p "$1 [y/N] " a; [ "$a" = y ] || [ "$a" = Y ]; }
 pause() { read -r -p "$1 (press Enter) " _; }
+
+# Copy that never truncates the destination inode: write a temp beside it, then
+# rename over. Safe even when the destination is a script currently being read
+# (e.g. update.sh refreshing itself), because the old inode survives open fds.
+atomic_copy() { # src dest
+  local tmp; tmp="$(dirname "$2")/.$(basename "$2").tmp.$$"
+  cp "$1" "$tmp" && mv "$tmp" "$2"
+}
 
 steam_running() { pgrep -x steam_osx >/dev/null; }
 
@@ -122,13 +131,18 @@ install_skeletons() {
 install_scripts() {
   mkdir -p "$PORTHOME/sme"
   local f
-  for f in edit_appinfo.py inject.sh reapply.sh install-durability.sh \
+  # Atomic (temp+rename) so this can safely overwrite an update.sh / reapply.sh
+  # that is currently executing.
+  for f in edit_appinfo.py inject.sh reapply.sh install-durability.sh update.sh \
            com.jake.insaniquarium.steampatch.plist run.sh uninstall.sh; do
-    cp "$SP/$f" "$PORTHOME/"
+    [ -f "$SP/$f" ] && atomic_copy "$SP/$f" "$PORTHOME/$f"
   done
-  cp "$SP/sme/appinfo.py" "$PORTHOME/sme/"
-  if [ -f "$SP/sme/NOTICE" ]; then cp "$SP/sme/NOTICE" "$PORTHOME/sme/"; fi
+  atomic_copy "$SP/sme/appinfo.py" "$PORTHOME/sme/appinfo.py"
+  if [ -f "$SP/sme/NOTICE" ]; then atomic_copy "$SP/sme/NOTICE" "$PORTHOME/sme/NOTICE"; fi
   chmod +x "$PORTHOME"/*.sh
+  # Record which release this install came from (drives update.sh's staleness
+  # check). Present in release tarballs; absent in ad-hoc/dev builds.
+  if [ -f "$BASE/RELEASE" ]; then atomic_copy "$BASE/RELEASE" "$PORTHOME/RELEASE"; fi
 }
 
 inject_appinfo() {
@@ -259,7 +273,115 @@ actual tank. Run "./setup.sh verify" any time to health-check the install.
 MSG
 }
 
+# --- Update mode (in-place app+saver swap; no Steam interaction, saves kept) --
+UPD_TMPS=()
+update_cleanup() { local t; for t in "${UPD_TMPS[@]:-}"; do [ -n "$t" ] && rm -rf "$t"; done; }
+
+# Build the new bundle in a temp dir (ditto payload -> graft stashed assets ->
+# sign -> verify), THEN swap it in with a .bak rollback. Nothing destructive
+# happens to the live bundle until the new one is fully built and verified.
+swap_bundle() { # payload_src stash_dir dest
+  local payload_src="$1" stash="$2" dest="$3"
+  [ -d "$payload_src" ] || die "payload missing: $payload_src (need a release tarball, not a source checkout)"
+  local staged; staged="$(mktemp -d "${TMPDIR:-/tmp}/insaniq-stage.XXXXXX")"
+  UPD_TMPS+=("$staged")
+  local new="$staged/$(basename "$dest")" d
+  ditto "$payload_src" "$new"
+  for d in "${ASSET_DIRS[@]}"; do
+    rm -rf "$new/Contents/Resources/$d"
+    cp -R "$stash/$d" "$new/Contents/Resources/$d"
+  done
+  codesign --force --deep -s - "$new"
+  codesign --verify --deep --strict "$new" || die "codesign verify failed for new $(basename "$dest") - live install untouched"
+  xattr -dr com.apple.quarantine "$new" 2>/dev/null || true
+  local bak="$dest.bak.$$"
+  [ -e "$dest" ] && mv "$dest" "$bak"
+  if ! mv "$new" "$dest"; then
+    [ -e "$bak" ] && mv "$bak" "$dest"
+    die "failed to install new $(basename "$dest") (rolled back)"
+  fi
+  rm -rf "$bak"
+}
+
+update_verify() {
+  local ok=1 editpy="$PORTHOME/edit_appinfo.py"
+  [ -f "$editpy" ] || editpy="$SP/edit_appinfo.py"
+  chk() { if eval "$2" >/dev/null 2>&1; then echo "PASS  $1"; else echo "FAIL  $1"; ok=0; fi; }
+  # Fatal: these are what make the game actually run.
+  chk "app installed"        '[ -x "$APP/Contents/MacOS/insaniquarium" ]'
+  chk "app assets present"   'valid_assets "$APP/Contents/Resources"'
+  chk "app signature"        'codesign --verify --deep --strict "$APP"'
+  chk "saver installed"      '[ -d "$SAVER" ]'
+  chk "saver assets present" 'valid_assets "$SAVER/Contents/Resources"'
+  [ "$ok" = 1 ] || die "update verification failed - your previous install may still be intact; rerun, or run the full ./setup.sh"
+  # Advisory: the Steam wiring self-heals via the durability agent, and
+  # 'launchctl list' can't see GUI-session agents from every context - so warn,
+  # never fail. 'bash setup.sh verify' in Terminal is the authoritative check.
+  launchctl list 2>/dev/null | grep -q insaniquarium.steampatch \
+    || echo "note: durability agent not detected from here - confirm with 'bash setup.sh verify' in Terminal"
+  python3 "$editpy" show "$APPINFO" 2>/dev/null | grep -q macos \
+    || echo "note: Steam Play-button wiring looks incomplete - run the full ./setup.sh if Play doesn't launch the app"
+}
+
+update_fda_tail() {
+  cat <<'MSG'
+
+Note: updating the app changes its code signature, which clears its Full Disk
+Access grant. Until you re-grant it, the game shows an "access data from other
+apps" prompt on launch (clicking Allow works each time). To silence it for good:
+  System Settings > Privacy & Security > Full Disk Access - if Insaniquarium is
+  already listed, toggle it off then on; otherwise click "+", add
+  /Applications/Insaniquarium.app, and switch it on.
+MSG
+  if ask "Open Full Disk Access settings now?"; then
+    open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" || true
+  fi
+}
+
+update_install() {
+  say "Updating Insaniquarium in place (saves & Steam wiring stay untouched)"
+  trap update_cleanup EXIT
+  [ "$(uname -m)" = arm64 ] || die "this port is Apple Silicon (arm64) only"
+  [ "${EUID:-$(id -u)}" -ne 0 ] || die "do not run as root"
+  [ "$MODE" = payload ] || die "update needs a release tarball; for a source checkout: git pull && ./setup.sh"
+  [ -x "$APP/Contents/MacOS/insaniquarium" ] || die "no existing install at $APP - run the full ./setup.sh first"
+  pgrep -f "Insaniquarium.app/Contents/MacOS|Insaniquarium Deluxe/insaniquarium" >/dev/null \
+    && die "Insaniquarium is running - quit the game first (Steam can stay open)"
+  if pgrep -f legacyScreenSaver >/dev/null; then
+    echo "The screensaver engine is active (a running saver or the System Settings"
+    echo "Screen Saver preview) and holds the .saver open."
+    ask "Close it and continue? (say n to abort, close it, and rerun)" || die "close the screensaver/preview, then rerun"
+  fi
+
+  # The payload is asset-free, so stash the installed game assets and re-graft
+  # them onto the fresh bundles - otherwise the swap ships a contentless game.
+  local stash src d cand
+  stash="$(mktemp -d "${TMPDIR:-/tmp}/insaniq-stash.XXXXXX")"; UPD_TMPS+=("$stash")
+  src=""
+  for cand in "$APP/Contents/Resources" "$SAVER/Contents/Resources" "$GAMEDIR"; do
+    if valid_assets "$cand"; then src="$cand"; break; fi
+  done
+  [ -n "$src" ] || die "couldn't find installed game assets to preserve - run the full ./setup.sh"
+  for d in "${ASSET_DIRS[@]}"; do cp -R "$src/$d" "$stash/$d"; done
+  valid_assets "$stash" || die "asset stash failed validation - aborted before changing anything"
+
+  say "[1/3] Swapping the app + screensaver (crash-safe, with rollback)"
+  swap_bundle "$BASE/payload/Insaniquarium.app"   "$stash" "$APP"
+  swap_bundle "$BASE/payload/Insaniquarium.saver" "$stash" "$SAVER"
+
+  say "[2/3] Refreshing helper scripts + durability agent"
+  install_scripts
+  "$PORTHOME/install-durability.sh" || echo "warning: could not reload the durability agent (run ./setup.sh verify)"
+
+  say "[3/3] Verifying"
+  update_verify
+  update_fda_tail
+  say "Update complete. Saves, Steam Play button, and screensaver selection are unchanged."
+  echo "Health-check any time: bash setup.sh verify"
+}
+
 verify_install() {
+  echo "port release: $(cat "$PORTHOME/RELEASE" 2>/dev/null || echo '(unversioned / pre-updater install)')"
   local ok=1 editpy="$PORTHOME/edit_appinfo.py"
   [ -f "$editpy" ] || editpy="$SP/edit_appinfo.py"
   chk() { if eval "$2" >/dev/null 2>&1; then echo "PASS  $1"; else echo "FAIL  $1"; ok=0; fi; }
@@ -280,15 +402,21 @@ CMD=install ASSETS="" CONSOLE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     verify) CMD=verify; shift;;
+    --update) CMD=update; shift;;
     --assets) ASSETS="${2:?--assets needs a path}"; shift 2;;
     --console-fetch) CONSOLE=1; shift;;
-    -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) die "unknown argument: $1 (try --help)";;
   esac
 done
 
 if [ "$CMD" = verify ]; then
   verify_install
+  exit 0
+fi
+
+if [ "$CMD" = update ]; then
+  update_install
   exit 0
 fi
 

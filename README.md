@@ -88,11 +88,33 @@ always safe to rerun.
 
 ## After setup
 
-- `./setup.sh verify`: health-check every piece
+- `./setup.sh verify`: health-check every piece (also prints the release marker)
 - `scripts/steam-play-button/uninstall.sh`: full uninstall (`--purge-saves`
   to also remove save data)
 - Don't force-kill the game (Steam will think it's still running); quit it
   normally.
+
+## Updating
+
+Two channels, both preserve saves, Steam wiring, and screensaver selection:
+
+- **Installed from a release tarball** (the shared build): quit the game and run
+  ```
+  curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash
+  ```
+  (or double-click `Update Insaniquarium.command`). It downloads the latest
+  release, re-grafts your existing game assets onto the new build, and swaps it
+  in with a rollback safety net. It asks for **Full Disk Access** again because
+  the app's signature changed.
+- **Built from source** (this repo): `git pull && ./setup.sh`. The game-code fix
+  ships via the `VERSIONS` pins, which `setup.sh` clones at the pinned SHA.
+
+Maintainer notes: `scripts/release.sh` cuts a release (gates on a clean tree +
+pushed fork pins, builds the slim tarball, tags, and uploads the tarball,
+`.sha256`, and `update.sh`). The game-code forks in `WinFish/` and
+`PvZ-Portable/` use remote **`public`** (Jake-Vellora) for our changes; `origin`
+is the upstream (kyle-sylvestre). Fixes are pushed to `public` and pinned in
+`VERSIONS`.
 
 ## Repository layout
 
