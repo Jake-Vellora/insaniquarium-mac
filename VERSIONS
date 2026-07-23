@@ -1,6 +1,0 @@
-# Pinned source refs used by setup.sh (source mode). Update the SHAs when the
-# mac-port branches move, so fresh installs stay reproducible.
-WINFISH_REPO=https://github.com/Jake-Vellora/WinFish.git
-WINFISH_REF=255af7116499a5b910f292faf045bee655d49be8
-PVZ_REPO=https://github.com/Jake-Vellora/PvZ-Portable.git
-PVZ_REF=069d0057339623dd91957479ab815d2dcc618c64

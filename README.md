@@ -66,9 +66,10 @@ always safe to rerun.
    [WinFish](https://github.com/Vindirect/WinFish) decompilation
    (Insaniquarium's internal codename), transplanted onto the SDL2+OpenGL
    [PvZ-Portable](https://github.com/kyle-sylvestre/PvZ-Portable)
-   SexyAppFramework. This repo pins patched forks of both
-   (see `VERSIONS`) and adds the missing build system (CMake), macOS
-   packaging, the screensaver, and the Steam integration.
+   SexyAppFramework. Both source trees live in this repo (`WinFish/` and
+   `PvZ-Portable/`, with the port's patches applied), alongside the missing
+   build system (CMake), macOS packaging, the screensaver, and the Steam
+   integration.
 2. **The Play button**: Steam's macOS client can't launch Windows-only games,
    so `setup.sh` edits Steam's local `appinfo.vdf` cache (checksummed v29
    format) to mark appid 3320 as having a native macOS build with a launch
@@ -110,15 +111,15 @@ All methods preserve saves, Steam wiring, and screensaver selection.
   release, re-grafts your existing game assets onto the new build, and swaps it
   in with a rollback safety net. It asks for **Full Disk Access** again because
   the app's signature changed.
-- **Built from source** (this repo): `git pull && ./setup.sh`. The game-code fix
-  ships via the `VERSIONS` pins, which `setup.sh` clones at the pinned SHA.
+- **Built from source** (this repo): `git pull && ./setup.sh`. The full game
+  source is in-tree, so a pull brings every fix.
 
-Maintainer notes: `scripts/release.sh` cuts a release (gates on a clean tree +
-pushed fork pins, builds the slim tarball, tags, and uploads the tarball,
-`.sha256`, and `update.sh`). The game-code forks in `WinFish/` and
-`PvZ-Portable/` use remote **`public`** (Jake-Vellora) for our changes; `origin`
-is the upstream (kyle-sylvestre). Fixes are pushed to `public` and pinned in
-`VERSIONS`.
+Maintainer notes: `scripts/release.sh` cuts a release (gates on a clean `main`
+in sync with origin, builds the slim tarball, tags, and uploads the tarball,
+`.sha256`, and `update.sh`). Checkouts from before 2026-07-23 had `WinFish/`
+and `PvZ-Portable/` as separate gitignored clones; on such a checkout run
+`rm -rf WinFish PvZ-Portable`, then `git pull` and
+`git checkout -- WinFish PvZ-Portable` to switch to the vendored layout.
 
 ## Repository layout
 
@@ -129,12 +130,14 @@ is the upstream (kyle-sylvestre). Fixes are pushed to `public` and pinned in
   packaging (dylibbundler + ad-hoc codesign)
 - `scripts/steam-play-button/`: the Steam `appinfo.vdf` injection, manifest,
   durability agent, uninstaller
-- `VERSIONS`: pinned refs of the two source forks cloned at build time
+- `WinFish/`: the game's C++ source (public decompilation + the port's patches)
+- `PvZ-Portable/`: the SDL2/OpenGL SexyAppFramework the game runs on
 
 ## Credits & legal
 
 - Game © PopCap Games / Electronic Arts. **Buy it on Steam**; this project
-  is useless without a Steam license and distributes no game code or assets.
+  is useless without a Steam license and distributes **no game assets**. The
+  game code included here is the publicly available WinFish decompilation.
 - Decompilation lineage: [Vindirect/WinFish](https://github.com/Vindirect/WinFish),
   macOS/SDL2 groundwork by [kyle-sylvestre](https://github.com/kyle-sylvestre)
   (WinFish + PvZ-Portable forks), framework originally from the PvZ-Portable
@@ -145,5 +148,5 @@ is the upstream (kyle-sylvestre). Fixes are pushed to `public` and pinned in
 - `packaging/libsteam_api.dylib` is Valve's redistributable Steamworks
   library.
 - Everything original to this repo (build system, scripts, screensaver code)
-  is MIT; see `LICENSE`. The pinned game-code forks retain their upstream
-  status.
+  is MIT; see `LICENSE`. The vendored game code under `WinFish/` and
+  `PvZ-Portable/` retains its upstream status.

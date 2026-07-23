@@ -1,0 +1,90 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Since Kotlin 1.8 the jdk7/jdk8 classes live inside kotlin-stdlib itself.
+// Exclude the legacy split modules so transitive deps don't cause duplicates.
+configurations.all {
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
+    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
+}
+
+// Set usePrebuiltLibs=true (e.g., -PusePrebuiltLibs=true) when native .so files
+// are already placed under app/src/main/jniLibs/<abi>/ (used in CI).
+// Otherwise, Gradle will invoke CMake via externalNativeBuild.
+def prebuilt = project.hasProperty('usePrebuiltLibs') && project.usePrebuiltLibs.toBoolean()
+
+android {
+    namespace 'io.github.wszqkzqk.pvzportable'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "io.github.wszqkzqk.pvzportable"
+        minSdk 28
+        targetSdk 36
+        versionCode 1
+        versionName "0.1"
+
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+
+        if (!prebuilt) {
+            externalNativeBuild {
+                cmake {
+                    def args = ["-DCMAKE_BUILD_TYPE=Release"]
+                    if (project.hasProperty('cmakeArgs')) {
+                        args.addAll(project.cmakeArgs.split(','))
+                    }
+                    arguments(*args)
+                }
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Use debug signing so the APK is directly installable without a release keystore
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    if (!prebuilt) {
+        externalNativeBuild {
+            cmake {
+                path "../../CMakeLists.txt"
+                version "3.22.1+"
+            }
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = [
+                'src/main/java',
+                "${project.rootDir}/../sdl2-src/android-project/app/src/main/java"
+            ]
+        }
+    }
+
+    buildFeatures {
+        prefab true
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.activity:activity:1.10.1'
+    implementation 'androidx.documentfile:documentfile:1.0.1'
+}

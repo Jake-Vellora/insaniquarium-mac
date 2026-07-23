@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=PvZ Portable
+Comment=Community reimplementation of Plants vs. Zombies GOTY — 100% authentic PvZ experience
+Exec=/usr/bin/pvz-portable %U
+Icon=io.github.wszqkzqk.pvz-portable
+Terminal=false
+Type=Application
+Categories=Game;Application;
+StartupWMClass=pvz-portable
+TryExec=/usr/bin/pvz-portable

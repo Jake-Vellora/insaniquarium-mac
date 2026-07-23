@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="manage_data"
+        android:enabled="true"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:shortcutShortLabel="@string/shortcut_manage_data"
+        android:shortcutLongLabel="@string/shortcut_manage_data_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.wszqkzqk.pvzportable"
+            android:targetClass="io.github.wszqkzqk.pvzportable.ResourceImportActivity" />
+    </shortcut>
+</shortcuts>

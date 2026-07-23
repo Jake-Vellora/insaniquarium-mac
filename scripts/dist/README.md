@@ -90,6 +90,6 @@ Full Disk Access. Run `bash setup.sh verify` afterward to confirm.
   tralph3's Steam-Metadata-Editor, GPL; see `scripts/sme/NOTICE`)
 - `Update Insaniquarium.command`: double-click updater
 - `RELEASE`: which release this tarball is (the updater uses it)
-- `src/`: git bundles of the full source, for rebuilding — only in the "full"
+- `src/`: a git bundle of the full source, for rebuilding — only in the "full"
   tarball; release downloads are slim and omit it (the source is on GitHub)
 - `SHA256SUMS`: file checksums

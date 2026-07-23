@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PvZ Portable — Web</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    background: #1a1a2e; color: #eee;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+}
+body.upload-mode {
+    display: flex; flex-direction: column; align-items: stretch; justify-content: center;
+    overflow-x: hidden; overflow-y: auto;
+}
+body.game-mode {
+    overflow: hidden;
+}
+#upload-screen {
+    text-align: center; padding: 2em 1.25em;
+    max-width: 600px; width: min(600px, 100%);
+    min-height: 100vh; margin: 0 auto;
+    display: flex; flex-direction: column; justify-content: center;
+}
+#upload-screen h1 { font-size: 1.8em; margin-bottom: 0.35em; color: #4ecca3; }
+#upload-screen h1 a { color: inherit; text-decoration: none; }
+#upload-screen h1 a:hover { text-decoration: underline; }
+#project-links {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 0.9em;
+    font-size: 0.9em; margin-bottom: 0.75em;
+}
+#project-links a { color: #4ecca3; text-decoration: underline; }
+#upload-screen p  { margin: 0.5em 0; line-height: 1.5; color: #bbb; }
+#upload-screen .note { font-size: 0.85em; color: #888; margin-top: 1em; }
+#drop-zone {
+    border: 2px dashed #4ecca3; border-radius: 12px;
+    padding: 2em; margin: 1.5em 0;
+    transition: background 0.3s, border-color 0.3s, transform 0.2s;
+}
+#drop-zone:hover, #drop-zone.dragover { background: rgba(78,204,163,0.1); }
+#drop-zone.ready {
+    border-style: solid; border-color: #4ecca3;
+    background: rgba(78,204,163,0.08); cursor: pointer;
+}
+#drop-zone.ready:hover { background: rgba(78,204,163,0.18); transform: translateY(-1px); }
+#drop-zone input { display: none; }
+/* Upload-mode elements (hidden when .ready or .loading) */
+#drop-zone-title { margin: 0 0 0.4em; color: #eee; }
+#drop-zone-subtitle { font-size: 0.85em; color: #888; margin: 0 0 1.2em; }
+#drop-zone.ready #drop-zone-title,
+#drop-zone.ready #drop-zone-subtitle,
+#drop-zone.ready #resource-split-actions,
+#drop-zone.loading #drop-zone-title,
+#drop-zone.loading #drop-zone-subtitle,
+#drop-zone.loading #resource-split-actions { display: none; }
+/* Ready-mode elements (shown only when .ready) */
+#drop-zone-ready-title {
+    display: none; font-size: 1.35em; font-weight: bold; color: #4ecca3;
+    margin: 0.3em 0;
+}
+#drop-zone-ready-subtitle {
+    display: none; font-size: 0.85em; color: #bbb; margin: 0.2em 0 0.6em;
+}
+#drop-zone-reselect {
+    display: none; font-size: 0.8em; color: #888; margin-top: 0.5em;
+}
+#drop-zone-reselect a {
+    color: #4ecca3; cursor: pointer; text-decoration: underline;
+}
+#drop-zone.ready #drop-zone-ready-title,
+#drop-zone.ready #drop-zone-ready-subtitle,
+#drop-zone.ready #drop-zone-reselect,
+#drop-zone.ready #file-list { display: block; }
+#drop-zone.ready #file-list div { display: inline-block; }
+/* Loading-mode elements */
+#drop-zone.loading #loading-drop-zone { display: block; }
+#drop-zone.loading #drop-zone-ready-title,
+#drop-zone.loading #drop-zone-ready-subtitle,
+#drop-zone.loading #drop-zone-reselect,
+#drop-zone.loading #file-list { display: none; }
+#resource-split-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.9em;
+}
+.resource-action {
+    appearance: none; background: rgba(43,43,64,0.85); color: #eee;
+    border: 1px solid rgba(78,204,163,0.55); border-radius: 10px;
+    padding: 1.15em 1em; cursor: pointer; text-align: center;
+    transition: transform 0.18s, background 0.18s, border-color 0.18s;
+}
+.resource-action:hover {
+    background: rgba(78,204,163,0.12); border-color: #4ecca3; transform: translateY(-1px);
+}
+.resource-action strong {
+    display: block; font-size: 1.02em; color: #4ecca3; margin-bottom: 0.35em;
+}
+.resource-action span {
+    display: block; font-size: 0.85em; line-height: 1.4; color: #bbb;
+}
+#file-list { text-align: center; margin: 0.5em 0 0; font-size: 0.85em; display: none; }
+#file-list.has-items { display: block; }
+#file-list div { padding: 2px 0; color: #aaa; display: inline-block; margin: 0 0.5em; }
+#file-list div.ok { color: #4ecca3; }
+#file-list div.missing { color: #e74c3c; }
+#loading-drop-zone { display: none; margin-top: 0.6em; color: #4ecca3; font-size: 0.9em; }
+#loading-drop-zone.has-error { display: block; color: #e74c3c; }
+#upload-save-actions {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6em;
+    margin-top: 0.75em;
+}
+#upload-save-actions button {
+    background: #2b2b40; color: #4ecca3; border: 1px solid #4ecca3;
+    border-radius: 8px; padding: 0.6em 1em; cursor: pointer;
+}
+#upload-save-actions button:hover { background: rgba(78,204,163,0.12); }
+#upload-save-actions button:disabled { opacity: 0.4; cursor: default; }
+#canvas-container { display: none; width: 100vw; height: 100vh; position: fixed; inset: 0;
+    justify-content: center; align-items: center; background: #000; overflow: hidden; }
+#canvas-container:fullscreen {
+    width: 100%; height: 100%;
+}
+canvas#canvas {
+    display: block;
+    background: #000; outline: none;
+}
+#pvz-soft-keyboard {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    resize: none;
+    pointer-events: none;
+    font-size: 16px;
+}
+#save-toolbar {
+    position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 10;
+    flex-wrap: wrap; justify-content: flex-end; max-width: calc(100vw - 16px);
+}
+#save-toolbar button {
+    background: rgba(30,30,50,0.75); color: #4ecca3; border: 1px solid #4ecca3;
+    border-radius: 6px; padding: 0.35em 0.8em; font-size: 0.85em; cursor: pointer;
+    backdrop-filter: blur(4px); transition: background 0.2s;
+}
+#save-toolbar button:hover { background: rgba(78,204,163,0.2); }
+#save-toolbar button:disabled { opacity: 0.4; cursor: default; }
+
+@media (max-height: 760px), (max-width: 640px) {
+    body.upload-mode { justify-content: flex-start; }
+    #upload-screen { padding: 1.25em 1em 2em; justify-content: flex-start; }
+    #drop-zone { padding: 1.25em; margin: 1em 0; }
+    #resource-split-actions { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="upload-mode">
+<div id="upload-screen">
+    <h1><a href="https://github.com/wszqkzqk/PvZ-Portable" target="_blank" rel="noopener noreferrer">PvZ Portable | Play Anywhere</a></h1>
+    <p id="project-links">
+        <a href="https://github.com/wszqkzqk/PvZ-Portable" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/wszqkzqk/PvZ-Portable/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+        <a href="https://github.com/wszqkzqk/PvZ-Portable/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+    </p>
+    <p>Community-driven re-implementation for <strong>all desktop, mobile, and web</strong>. Play instantly in your browser with no installation. <strong>No game resources are included.</strong></p>
+    <p>To use this engine, you <strong>MUST</strong> legally purchase the original game on <a href="https://store.steampowered.com/app/3590/Plants_vs_Zombies_GOTY_Edition/" target="_blank" style="color:#4ecca3;text-decoration:underline;">Steam</a> or <a href="https://www.ea.com/games/plants-vs-zombies/plants-vs-zombies" target="_blank" style="color:#4ecca3;text-decoration:underline;">EA's official website</a>.<br>
+    Please provide your own <code>main.pak</code> and <code>properties/</code> folder from your legally purchased copy of Plants&nbsp;vs.&nbsp;Zombies GOTY Edition.</p>
+    <p style="font-size: 0.85em; color: #888; font-style: italic; line-height: 1.4; max-width: 600px; margin: 0 auto 1.5em auto;">Disclaimer: This strictly educational project is a community-driven engine re-implementation. It is not affiliated with, authorized, or endorsed by PopCap Games or Electronic Arts.</p>
+
+    <div id="drop-zone">
+        <p id="drop-zone-title">📂 Drop resources here — import and play instantly!</p>
+        <p id="drop-zone-subtitle">Drop a ZIP or folder containing <code>main.pak</code> &amp; <code>properties/</code>, or pick one below:</p>
+        <div id="resource-split-actions">
+            <button id="browse-zip-btn" class="resource-action" type="button">
+                <strong>Import Resource ZIP</strong>
+                <span>Select a ZIP package that contains <code>main.pak</code> and <code>properties/</code>.</span>
+            </button>
+            <button id="browse-folder-btn" class="resource-action" type="button">
+                <strong>Select Resource Folder</strong>
+                <span>Select a folder that directly contains <code>main.pak</code> and <code>properties/</code>.</span>
+            </button>
+        </div>
+        <p id="drop-zone-ready-title">▶ Start Game</p>
+        <p id="drop-zone-ready-subtitle">Resources loaded successfully. Click here to launch!</p>
+        <div id="file-list"></div>
+        <p id="drop-zone-reselect"><a id="reselect-link">Re-select resources</a></p>
+        <div id="loading-drop-zone"></div>
+        <input type="file" id="file-input" multiple webkitdirectory>
+        <input type="file" id="resource-zip-input" accept=".zip,application/zip,application/x-zip-compressed" style="display:none">
+    </div>
+    <div id="upload-save-actions">
+        <button id="upload-save-import-btn" title="Import saves from ZIP before starting">Import Save ZIP</button>
+        <button id="upload-save-import-dir-btn" title="Import saves from a folder before starting">Import Save Folder</button>
+        <button id="upload-save-clear-btn" title="Delete all saved data stored in this browser">Clear Browser Saves</button>
+    </div>
+    <input type="file" id="upload-save-import-input" accept=".zip" style="display:none">
+    <input type="file" id="upload-save-import-dir-input" multiple webkitdirectory style="display:none">
+
+    <p class="note">Your files stay in your browser and are never uploaded to any server.<br>Resources can be loaded from a ZIP package or a resource folder. Saves are stored locally in your browser via IndexedDB and can be imported from ZIP or folder.</p>
+    <p class="note">Starting the game indicates that you have read the notices above and acknowledge the no-warranty terms of the LGPL v3.0-or-later license for this code.</p>
+    <p class="note">Copyright (C) 2026 Zhou Qiankang &lt;<a href="mailto:wszqkzqk@qq.com" style="color:#4ecca3;text-decoration:underline;">wszqkzqk@qq.com</a>&gt;</p>
+</div>
+
+<div id="canvas-container">
+    <div id="save-toolbar">
+        <button id="save-export-btn" title="Export saves as ZIP">💾 Export Saves</button>
+    </div>
+    <canvas id="canvas" width="800" height="600" tabindex="0"></canvas>
+</div>
+<textarea id="pvz-soft-keyboard" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done"></textarea>
+
+<!-- Module must be defined BEFORE the Emscripten glue script -->
+<script>
+window.moduleReadyPromise = new Promise(function(resolve, reject) {
+    window._resolveModuleReady = resolve;
+    window._rejectModuleReady = reject;
+});
+
+var Module = {
+    canvas: document.getElementById('canvas'),
+    noInitialRun: true,
+    onRuntimeInitialized: function() {
+        window._resolveModuleReady();
+    },
+    onAbort: function(what) {
+        window._rejectModuleReady(new Error(what));
+    },
+    print: function(text) { console.log(text); },
+    printErr: function(text) { console.warn(text); }
+};
+</script>
+{{{ SCRIPT }}}
+<script>
+'use strict';
+
+const collectedFiles = new Map();
+let hasPak = false;
+let hasProperties = false;
+let savesMounted = false;
+let gameStarted = false;
+let saveSyncIntervalId = null;
+let saveSyncInFlight = null;
+let saveSyncQueued = false;
+let lastSaveSyncAt = 0;
+let saveFsReadyPromise = null;
+
+const SAVE_SYNC_INTERVAL_MS = 5000;
+const SAVE_CLOSE_WARNING_MS = 7000;
+
+const dropZone    = document.getElementById('drop-zone');
+const fileInput   = document.getElementById('file-input');
+const browseFolderBtn = document.getElementById('browse-folder-btn');
+const browseZipBtn = document.getElementById('browse-zip-btn');
+const resourceZipInput = document.getElementById('resource-zip-input');
+const fileListDiv = document.getElementById('file-list');
+const loadStatus  = document.getElementById('loading-drop-zone');
+const uploadSaveImportBtn = document.getElementById('upload-save-import-btn');
+const uploadSaveImportDirBtn = document.getElementById('upload-save-import-dir-btn');
+const uploadSaveClearBtn = document.getElementById('upload-save-clear-btn');
+const uploadSaveImportInput = document.getElementById('upload-save-import-input');
+const uploadSaveImportDirInput = document.getElementById('upload-save-import-dir-input');
+const reselectLink = document.getElementById('reselect-link');
+
+let runtimeReloadScheduled = false;
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', async e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const items = e.dataTransfer.items;
+    if (!items) return;
+    const entries = [];
+    for (const item of items) {
+        const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+        if (entry) entries.push(entry);
+    }
+    for (const entry of entries) {
+        if (entry.isFile && entry.name && entry.name.toLowerCase().endsWith('.zip')) {
+            const file = await new Promise(r => entry.file(r));
+            await importResourceZip(file, browseZipBtn);
+            continue;
+        }
+        await traverseEntry(entry, '');
+    }
+    refreshUI();
+});
+browseFolderBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { handleFileList(fileInput.files); refreshUI(); });
+browseZipBtn.addEventListener('click', () => resourceZipInput.click());
+resourceZipInput.addEventListener('change', async () => {
+    const file = resourceZipInput.files && resourceZipInput.files[0];
+    if (!file) return;
+    await importResourceZip(file, browseZipBtn);
+    resourceZipInput.value = '';
+    refreshUI();
+});
+
+function normalizeResourcePath(path) {
+    const cleanPath = path.replace(/\\/g, '/').replace(/^\/+/, '');
+    const parts = cleanPath.split('/').filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts[0] === 'main.pak' || parts[0] === 'properties') return parts.join('/');
+    if (parts.length > 1) return parts.slice(1).join('/');
+    return parts[0];
+}
+
+function normalizeSaveImportPath(path) {
+    const cleanPath = path.replace(/\\/g, '/').replace(/^\/+/, '');
+    const parts = cleanPath.split('/').filter(Boolean);
+    if (parts.length === 0) return '';
+
+    const userdataIndex = parts.indexOf('userdata');
+    if (userdataIndex >= 0) return parts.slice(userdataIndex + 1).join('/');
+    if (parts.length > 1) return parts.slice(1).join('/');
+    return parts[0];
+}
+
+async function traverseEntry(entry, basePath) {
+    if (entry.isFile) {
+        const file = await new Promise(r => entry.file(r));
+        const rawPath = basePath ? basePath + '/' + entry.name : entry.name;
+        const path = normalizeResourcePath(rawPath);
+        if (!path) return;
+        collectedFiles.set(path, file);
+    } else if (entry.isDirectory) {
+        const dirPath = basePath ? basePath + '/' + entry.name : entry.name;
+        const reader = entry.createReader();
+        let batch;
+        do {
+            batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+            for (const child of batch) await traverseEntry(child, dirPath);
+        } while (batch.length > 0);
+    }
+}
+
+function handleFileList(files) {
+    for (const f of files) {
+        const path = normalizeResourcePath(f.webkitRelativePath || f.name);
+        if (!path) continue;
+        collectedFiles.set(path, f);
+    }
+}
+
+async function importResourceZip(file, btn) {
+    btn.disabled = true;
+    const oldHTML = btn.innerHTML;
+    btn.textContent = '⏳ Importing ZIP…';
+    try {
+        const zip = await JSZip.loadAsync(file);
+        const entries = Object.keys(zip.files).filter(name => !zip.files[name].dir);
+
+        for (const name of entries) {
+            const destPath = normalizeResourcePath(name);
+            if (!destPath) continue;
+            const data = await zip.files[name].async('uint8array');
+            collectedFiles.set(destPath, new File([data], destPath.split('/').pop()));
+        }
+    } catch (e) {
+        console.error('Resource ZIP import failed:', e);
+        alert('Resource ZIP import failed: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = oldHTML;
+    }
+}
+
+function refreshUI() {
+    hasPak = collectedFiles.has('main.pak');
+    hasProperties = false;
+    for (const key of collectedFiles.keys()) {
+        if (key.startsWith('properties/')) { hasProperties = true; break; }
+    }
+
+    const allReady = hasPak && hasProperties;
+    const hasAny = collectedFiles.size > 0;
+
+    fileListDiv.innerHTML = '';
+    if (hasAny) {
+        const show = (label, ok) => {
+            const d = document.createElement('div');
+            d.textContent = (ok ? '✓ ' : '✗ ') + label;
+            d.className = ok ? 'ok' : 'missing';
+            fileListDiv.appendChild(d);
+        };
+        show('main.pak', hasPak);
+        show('properties/', hasProperties);
+    }
+    fileListDiv.classList.toggle('has-items', hasAny);
+
+    dropZone.classList.toggle('ready', allReady);
+    if (allReady) {
+        dropZone.setAttribute('tabindex', '0');
+        dropZone.setAttribute('role', 'button');
+        dropZone.setAttribute('aria-label', 'Start Game');
+    } else {
+        dropZone.removeAttribute('tabindex');
+        dropZone.removeAttribute('role');
+        dropZone.removeAttribute('aria-label');
+    }
+}
+
+// Click or keyboard activate the drop zone when ready → start game
+function handleDropZoneActivate(e) {
+    if (!dropZone.classList.contains('ready')) return;
+    if (e.target.closest('#drop-zone-reselect') || e.target.closest('#file-list')) return;
+    startGame();
+}
+dropZone.addEventListener('click', handleDropZoneActivate);
+dropZone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDropZoneActivate(e); }
+});
+
+// Re-select link reverts to upload mode
+reselectLink.addEventListener('click', e => {
+    e.stopPropagation();
+    collectedFiles.clear();
+    fileInput.value = '';
+    resourceZipInput.value = '';
+    refreshUI();
+});
+
+function resizeCanvas() {
+    var canvas = document.getElementById('canvas');
+    var container = document.getElementById('canvas-container');
+    var vw = container.clientWidth;
+    var vh = container.clientHeight;
+    // Fit 4:3 aspect ratio inside the viewport
+    var scale = Math.min(vw / canvas.width, vh / canvas.height);
+    canvas.style.width  = Math.floor(canvas.width  * scale) + 'px';
+    canvas.style.height = Math.floor(canvas.height * scale) + 'px';
+}
+
+window.addEventListener('fullscreenchange', resizeCanvas);
+
+function canSyncSaves() {
+    return savesMounted && Module.FS && typeof Module.FS.syncfs === 'function';
+}
+
+async function ensureSaveFsReady() {
+    if (saveFsReadyPromise) return saveFsReadyPromise;
+
+    saveFsReadyPromise = (async () => {
+        await window.moduleReadyPromise;
+        try { Module.FS.mkdir('/saves'); } catch (e) {}
+        try { Module.FS.mount(Module.FS.filesystems.IDBFS, {}, '/saves'); } catch (e) {}
+        savesMounted = true;
+
+        await new Promise(r => Module.FS.syncfs(true, err => {
+            if (err) console.warn('IDBFS initial sync error:', err);
+            r();
+        }));
+
+        lastSaveSyncAt = Date.now();
+    })();
+
+    return saveFsReadyPromise;
+}
+
+async function syncSaves() {
+    if (!canSyncSaves()) return;
+
+    if (saveSyncInFlight) {
+        saveSyncQueued = true;
+        return saveSyncInFlight;
+    }
+
+    saveSyncInFlight = new Promise(resolve => Module.FS.syncfs(false, err => {
+        if (err) console.warn('IDBFS persist error:', err);
+        else lastSaveSyncAt = Date.now();
+        resolve();
+    }));
+
+    try {
+        await saveSyncInFlight;
+    } finally {
+        saveSyncInFlight = null;
+        if (saveSyncQueued) {
+            saveSyncQueued = false;
+            void syncSaves();
+        }
+    }
+}
+
+function startSaveAutosync() {
+    if (saveSyncIntervalId !== null) return;
+    saveSyncIntervalId = window.setInterval(() => {
+        void syncSaves();
+    }, SAVE_SYNC_INTERVAL_MS);
+}
+
+async function startGame() {
+    dropZone.classList.remove('ready');
+    dropZone.classList.add('loading');
+    dropZone.style.pointerEvents = 'none';
+    loadStatus.style.display = 'block';
+    loadStatus.classList.remove('has-error');
+    try {
+        loadStatus.textContent = 'Preparing WebAssembly runtime…';
+        await window.moduleReadyPromise;
+
+        const files = Array.from(collectedFiles.entries());
+        let processedBytes = 0;
+        const totalBytes = files.reduce((sum, [, file]) => sum + file.size, 0);
+
+        for (let i = 0; i < files.length; i++) {
+            const [path, file] = files[i];
+            loadStatus.textContent = 'Writing resources… '
+                + (i + 1) + '/' + files.length + ', '
+                + (processedBytes / 1048576).toFixed(1) + '/'
+                + (totalBytes / 1048576).toFixed(1) + ' MiB';
+
+            const data = new Uint8Array(await file.arrayBuffer());
+            const parts = path.split('/');
+            let dir = '/';
+            for (let j = 0; j < parts.length - 1; j++) {
+                dir += (dir === '/' ? '' : '/') + parts[j];
+                try { Module.FS.mkdir(dir); } catch (e) {}
+            }
+            Module.FS.writeFile('/' + path, data);
+            processedBytes += file.size;
+
+            if ((i + 1) % 4 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+
+        loadStatus.textContent = 'Restoring saved data…';
+        await ensureSaveFsReady();
+
+        document.body.classList.remove('upload-mode');
+        document.body.classList.add('game-mode');
+        document.getElementById('upload-screen').style.display = 'none';
+        document.getElementById('canvas-container').style.display = 'flex';
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        loadStatus.style.display = 'none';
+        gameStarted = true;
+        lastSaveSyncAt = Date.now();
+        startSaveAutosync();
+        Module.callMain([]);
+    } catch (e) {
+        console.error('Failed to start game:', e);
+        loadStatus.textContent = 'Error: ' + (e.message || e);
+        loadStatus.classList.add('has-error');
+        document.getElementById('canvas-container').style.display = 'none';
+        document.getElementById('upload-screen').style.display = '';
+        document.body.classList.remove('game-mode');
+        document.body.classList.add('upload-mode');
+        dropZone.classList.remove('loading');
+        dropZone.classList.add('ready');
+        dropZone.style.pointerEvents = '';
+    }
+}
+
+function collectSaveFiles(dir) {
+    const results = [];
+    let entries;
+    try { entries = Module.FS.readdir(dir); } catch (e) { return results; }
+    for (const name of entries) {
+        if (name === '.' || name === '..') continue;
+        const full = dir + '/' + name;
+        const stat = Module.FS.stat(full);
+        if (Module.FS.isDir(stat.mode)) results.push(...collectSaveFiles(full));
+        else results.push(full);
+    }
+    return results;
+}
+
+async function exportSaves() {
+    const btn = document.getElementById('save-export-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Exporting…';
+    try {
+        await ensureSaveFsReady();
+        await syncSaves();
+
+        const files = collectSaveFiles('/saves/userdata');
+        if (files.length === 0) { alert('No save data found.'); return; }
+
+        const zip = new JSZip();
+        for (const fullPath of files) {
+            zip.file(fullPath.replace(/^\/saves\//, ''), Module.FS.readFile(fullPath));
+        }
+
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'pvz-portable-savedata.zip';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    } catch (e) {
+        console.error('Export failed:', e);
+        alert('Export failed: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Export Saves';
+    }
+}
+
+async function importSaves(file, btn) {
+    await ensureSaveFsReady();
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = '⏳ Importing…';
+    try {
+        const zip = await JSZip.loadAsync(file);
+        const entries = Object.keys(zip.files).filter(n => !zip.files[n].dir);
+
+        for (const name of entries) {
+            let destPath = name;
+            if (!destPath.startsWith('userdata/')) destPath = 'userdata/' + destPath;
+            const fullPath = '/saves/' + destPath;
+
+            const parts = fullPath.split('/');
+            let dir = '';
+            for (let i = 1; i < parts.length - 1; i++) {
+                dir += '/' + parts[i];
+                try { Module.FS.mkdir(dir); } catch (e) {}
+            }
+
+            const data = await zip.files[name].async('uint8array');
+            Module.FS.writeFile(fullPath, data);
+        }
+
+        await syncSaves();
+    } catch (e) {
+        console.error('Import failed:', e);
+        alert('Import failed: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+    }
+}
+
+async function importSaveDirectory(files, btn) {
+    await ensureSaveFsReady();
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = '⏳ Importing…';
+    try {
+        for (const file of files) {
+            const relativePath = normalizeSaveImportPath(file.webkitRelativePath || file.name);
+            if (!relativePath) continue;
+
+            const fullPath = '/saves/userdata/' + relativePath;
+            const parts = fullPath.split('/');
+            let dir = '';
+            for (let i = 1; i < parts.length - 1; i++) {
+                dir += '/' + parts[i];
+                try { Module.FS.mkdir(dir); } catch (e) {}
+            }
+
+            const data = new Uint8Array(await file.arrayBuffer());
+            Module.FS.writeFile(fullPath, data);
+        }
+
+        await syncSaves();
+    } catch (e) {
+        console.error('Save folder import failed:', e);
+        alert('Save folder import failed: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+    }
+}
+
+async function clearSaves(btn) {
+    await ensureSaveFsReady();
+    if (!confirm('This will permanently delete ALL save data from your browser.\nThis cannot be undone. Continue?')) return;
+    btn.disabled = true;
+    const oldText = btn.textContent;
+    btn.textContent = '⏳ Clearing…';
+    try {
+        const files = collectSaveFiles('/saves');
+        for (const f of files) {
+            try { Module.FS.unlink(f); } catch (e) {}
+        }
+        // Remove empty directories under /saves (bottom-up)
+        function rmdirsRecursive(dir) {
+            let entries;
+            try { entries = Module.FS.readdir(dir); } catch (e) { return; }
+            for (const name of entries) {
+                if (name === '.' || name === '..') continue;
+                const full = dir + '/' + name;
+                try {
+                    const stat = Module.FS.stat(full);
+                    if (Module.FS.isDir(stat.mode)) rmdirsRecursive(full);
+                } catch (e) {}
+            }
+            if (dir !== '/saves') {
+                try { Module.FS.rmdir(dir); } catch (e) {}
+            }
+        }
+        rmdirsRecursive('/saves');
+
+        await syncSaves();
+        alert('All save data has been cleared.');
+    } catch (e) {
+        console.error('Clear failed:', e);
+        alert('Clear failed: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = oldText;
+    }
+}
+
+document.getElementById('save-export-btn').addEventListener('click', exportSaves);
+uploadSaveImportBtn.addEventListener('click', () => {
+    uploadSaveImportInput.click();
+});
+uploadSaveImportInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) importSaves(file, uploadSaveImportBtn);
+    e.target.value = '';
+});
+uploadSaveImportDirBtn.addEventListener('click', () => {
+    uploadSaveImportDirInput.click();
+});
+uploadSaveImportDirInput.addEventListener('change', async e => {
+    const files = e.target.files;
+    if (files && files.length > 0) await importSaveDirectory(files, uploadSaveImportDirBtn);
+    e.target.value = '';
+});
+uploadSaveClearBtn.addEventListener('click', () => {
+    void clearSaves(uploadSaveClearBtn);
+});
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') void syncSaves();
+});
+
+window.addEventListener('pagehide', () => {
+    void syncSaves();
+});
+
+window.addEventListener('beforeunload', e => {
+    if (!gameStarted) return;
+
+    void syncSaves();
+    if (Date.now() - lastSaveSyncAt >= SAVE_CLOSE_WARNING_MS) {
+        e.preventDefault();
+        e.returnValue = 'Recent save data may still be syncing. Wait a moment or export saves before leaving.';
+    }
+});
+
+window.onGameExit = function() {
+    gameStarted = false;
+    if (saveSyncIntervalId !== null) {
+        clearInterval(saveSyncIntervalId);
+        saveSyncIntervalId = null;
+    }
+    if (document.fullscreenElement) {
+        document.exitFullscreen().catch(function() {});
+    }
+    document.getElementById('canvas-container').style.display = 'none';
+    document.getElementById('upload-screen').style.display = '';
+    document.body.classList.remove('game-mode');
+    document.body.classList.add('upload-mode');
+    window.removeEventListener('resize', resizeCanvas);
+    // Restore drop-zone to 'ready' state so the user can re-launch.
+    dropZone.classList.remove('loading');
+    dropZone.style.pointerEvents = '';
+    loadStatus.style.display = 'none';
+    collectedFiles.clear();
+    fileInput.value = '';
+    resourceZipInput.value = '';
+    refreshUI();
+
+    if (runtimeReloadScheduled) return;
+    runtimeReloadScheduled = true;
+    loadStatus.textContent = 'Resetting WebAssembly runtime…';
+    loadStatus.classList.remove('has-error');
+    loadStatus.style.display = 'block';
+
+    window.setTimeout(() => window.location.reload(), 0);
+};
+</script>
+</body>
+</html>

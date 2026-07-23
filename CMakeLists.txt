@@ -21,6 +21,7 @@ if(NOT EXISTS ${PVZ_DIR}/src/SexyAppFrameworkFlat/SexyAppFramework/SexyAppBase.h
 	execute_process(
 		COMMAND bash ${PVZ_DIR}/scripts/create_flat_directory.sh
 		WORKING_DIRECTORY ${PVZ_DIR}/scripts
+		COMMAND_ERROR_IS_FATAL ANY
 	)
 endif()
 

@@ -3,9 +3,9 @@
 # auto-update to. Builds the slim (source-free) dist tarball, tags the repo, and
 # uploads the tarball + its .sha256 sidecar + update.sh as release assets.
 #
-# Prereqs: clean git tree on main, in sync with origin; the game-code fix already
-# committed+pushed to the WinFish/PvZ 'public' forks and pinned in VERSIONS;
-# `gh` authed. Usage: release.sh [--tag <tag>] [--force-build]
+# Prereqs: clean git tree on main, in sync with origin (the game source is
+# vendored in-tree, so main is the single source of truth); `gh` authed.
+# Usage: release.sh [--tag <tag>] [--force-build]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -36,16 +36,6 @@ git fetch --quiet origin
 git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && die "tag $TAG already exists locally"
 git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1 && die "tag $TAG already exists on origin"
 
-# The pinned fork SHAs must exist on the fork ('public') remotes, or a
-# source-mode install of this release can't fetch the fix.
-# shellcheck source=VERSIONS
-source VERSIONS
-for pin in "WinFish:$WINFISH_REPO:$WINFISH_REF" "PvZ:$PVZ_REPO:$PVZ_REF"; do
-  name="${pin%%:*}"; rest="${pin#*:}"; repo="${rest%:*}"; ref="${rest##*:}"
-  git ls-remote "$repo" | grep -q "^$ref" || die "$name pin $ref is not present on $repo - push the fork first"
-done
-echo "pins OK: WinFish=$WINFISH_REF PvZ=$PVZ_REF"
-
 # --- Build the slim dist -----------------------------------------------------
 echo "building slim dist for tag $TAG ..."
 scripts/make-dist.sh --no-source --release "$TAG"
@@ -71,8 +61,6 @@ trap 'rm -f "$NOTES"' EXIT
   echo
   echo "### Changes"
   if [ -n "$PREV" ]; then git log --pretty='- %s' "$PREV"..HEAD; else git log --pretty='- %s' -n 20 HEAD; fi
-  echo
-  echo "Pinned source: WinFish \`$WINFISH_REF\`, PvZ-Portable \`$PVZ_REF\`."
 } > "$NOTES"
 
 # --- Tag + publish -----------------------------------------------------------

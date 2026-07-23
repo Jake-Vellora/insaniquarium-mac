@@ -104,16 +104,17 @@ bootstrap_source() {
     eval "$(/opt/homebrew/bin/brew shellenv)"
   fi
   brew install "${BREW_DEPS[@]}"
-  # shellcheck source=VERSIONS
-  source "$BASE/VERSIONS"
-  clone_pin "$WINFISH_REPO" "$WINFISH_REF" "$BASE/WinFish"
-  clone_pin "$PVZ_REPO" "$PVZ_REF" "$BASE/PvZ-Portable"
-}
-
-clone_pin() { # repo ref dir
-  if [ ! -d "$3/.git" ]; then git clone "$1" "$3"; fi
-  git -C "$3" fetch --quiet origin
-  git -C "$3" checkout --quiet "$2"
+  # The game source is vendored in-tree (WinFish/ + PvZ-Portable/). Old checkouts
+  # (pre-2026-07-23) had them as separate gitignored clones; refuse that layout
+  # rather than build against stale source.
+  if [ -d "$BASE/WinFish/.git" ] || [ -d "$BASE/PvZ-Portable/.git" ]; then
+    die "old clone layout detected: back up anything you need under WinFish/ and
+       PvZ-Portable/, then run:  rm -rf WinFish PvZ-Portable
+       && git checkout -- WinFish PvZ-Portable   (restores the vendored source)"
+  fi
+  [ -f "$BASE/PvZ-Portable/src/SexyAppFramework/SexyAppBase.h" ] \
+    && [ -f "$BASE/WinFish/source/WinFish/WinFishApp.cpp" ] \
+    || die "vendored source trees missing or incomplete - re-clone the repo"
 }
 
 install_skeletons() {

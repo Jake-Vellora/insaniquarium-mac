@@ -1,7 +1,8 @@
 #!/bin/bash
 # Build the private distributable tarball (payload mode of setup.sh):
 # prebuilt asset-free app + saver skeletons, the Steam-patch scripts, setup.sh,
-# README, and (by default) git bundles of all three repos for provenance.
+# README, and (by default) a git bundle of the repo for provenance (the game
+# source is vendored in-tree, so one bundle covers everything).
 # The tarball contains NO game assets - the recipient's own Steam supplies them.
 # Usage: make-dist.sh [--no-source]
 set -euo pipefail
@@ -47,23 +48,18 @@ cp scripts/steam-play-button/sme/appinfo.py "$DIST/scripts/sme/"
 cp scripts/steam-play-button/sme/NOTICE "$DIST/scripts/sme/"
 cp setup.sh "$DIST/setup.sh"
 cp scripts/dist/README.md "$DIST/README.md"
-cp VERSIONS "$DIST/VERSIONS"
 cp "scripts/dist/Update Insaniquarium.command" "$DIST/"
 printf '%s\n' "$TAG" > "$DIST/RELEASE"
 chmod +x "$DIST/setup.sh" "$DIST/scripts/"*.sh "$DIST/Update Insaniquarium.command"
 
-# 4. Source bundles - the only way to rebuild if the dev machine dies
+# 4. Source bundle - the only way to rebuild if the dev machine dies
 if [ "$NOSOURCE" = 0 ]; then
 	mkdir -p "$DIST/src"
 	git bundle create "$DIST/src/insaniquarium-mac.bundle" --all
-	git -C WinFish bundle create "$PWD/$DIST/src/WinFish.bundle" mac-port
-	git -C PvZ-Portable bundle create "$PWD/$DIST/src/PvZ-Portable.bundle" mac-port
 	{
 		echo "built: $(date '+%Y-%m-%d %H:%M:%S')"
 		echo "host: macOS $(sw_vers -productVersion), $(uname -m)"
 		echo "insaniquarium-mac: $(git rev-parse HEAD)"
-		echo "WinFish: $(git -C WinFish rev-parse mac-port)"
-		echo "PvZ-Portable: $(git -C PvZ-Portable rev-parse mac-port)"
 	} > "$DIST/src/VERSION"
 fi
 
