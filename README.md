@@ -116,7 +116,9 @@ All methods preserve saves, Steam wiring, and screensaver selection.
 
 Maintainer notes: `scripts/release.sh` cuts a release (gates on a clean `main`
 in sync with origin, builds the slim tarball, tags, and uploads the tarball,
-`.sha256`, and `update.sh`). Checkouts from before 2026-07-23 had `WinFish/`
+`.sha256`, and `update.sh`). Release notes come from the matching
+`## <version>` section of `CHANGELOG.md`; the script refuses to release
+without one. Checkouts from before 2026-07-23 had `WinFish/`
 and `PvZ-Portable/` as separate gitignored clones; on such a checkout run
 `rm -rf WinFish PvZ-Portable`, then `git pull` and
 `git checkout -- WinFish PvZ-Portable` to switch to the vendored layout.

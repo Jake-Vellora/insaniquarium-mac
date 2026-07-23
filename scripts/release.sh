@@ -36,6 +36,15 @@ git fetch --quiet origin
 git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && die "tag $TAG already exists locally"
 git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1 && die "tag $TAG already exists on origin"
 
+# Every release must describe itself: the Changes section comes from the
+# matching "## <tag>" section of CHANGELOG.md, written before releasing.
+CHANGES="$(awk -v tag="$TAG" '
+  found && /^## / { exit }
+  $0 ~ "^## " tag "( |$)" { found = 1; next }
+  found { print }
+' CHANGELOG.md)"
+[ -n "${CHANGES//[[:space:]]/}" ] || die "CHANGELOG.md has no '## $TAG' section - write the release notes first"
+
 # --- Build the slim dist -----------------------------------------------------
 echo "building slim dist for tag $TAG ..."
 scripts/make-dist.sh --no-source --release "$TAG"
@@ -44,7 +53,6 @@ TARBALL="build/dist/insaniquarium-mac-${TAG}.tar.gz"
 [ -f "$TARBALL.sha256" ] || die "checksum sidecar missing: $TARBALL.sha256"
 
 # --- Release notes -----------------------------------------------------------
-PREV="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 NOTES="$(mktemp "${TMPDIR:-/tmp}/insaniq-notes.XXXXXX")"
 trap 'rm -f "$NOTES"' EXIT
 {
@@ -60,7 +68,7 @@ trap 'rm -f "$NOTES"' EXIT
   echo "After updating, re-grant Full Disk Access if prompted (the app's signature changed)."
   echo
   echo "### Changes"
-  if [ -n "$PREV" ]; then git log --pretty='- %s' "$PREV"..HEAD; else git log --pretty='- %s' -n 20 HEAD; fi
+  echo "$CHANGES"
 } > "$NOTES"
 
 # --- Tag + publish -----------------------------------------------------------
