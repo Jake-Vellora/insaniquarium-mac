@@ -96,9 +96,13 @@ always safe to rerun.
 
 ## Updating
 
-Two channels, both preserve saves, Steam wiring, and screensaver selection:
+All methods preserve saves, Steam wiring, and screensaver selection.
 
-- **Installed from a release tarball** (the shared build): quit the game and run
+- **In the game (easiest):** on v1.1.1+, open **Options → Check Updates**; if a
+  new version is available, click **Update Now** and the game closes, updates
+  itself, and reopens — no Terminal. (It also prompts weekly on its own.)
+- **From a release tarball** — and the one-time way to get onto a version that
+  has the in-app updater: quit the game and run
   ```
   curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash
   ```

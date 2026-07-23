@@ -17,9 +17,13 @@ while [ $# -gt 0 ]; do
     *) echo "usage: release.sh [--tag <tag>] [--force-build]"; exit 2;;
   esac
 done
-[ -n "$TAG" ] || TAG="r$(date +%Y-%m-%d)"
+# Default tag = the port version (single source of truth in PORT_VERSION), so the
+# GitHub release tag, the $PORTHOME/RELEASE marker, and the in-Options version
+# string all agree. Bump PORT_VERSION before each release.
+[ -n "$TAG" ] || TAG="$(tr -d '[:space:]' < PORT_VERSION)"
 
 die() { echo "error: $*" >&2; exit 1; }
+[ -n "$TAG" ] || die "PORT_VERSION is empty"
 
 command -v gh >/dev/null || die "gh CLI not found"
 gh auth status >/dev/null 2>&1 || die "gh not authenticated (gh auth login)"

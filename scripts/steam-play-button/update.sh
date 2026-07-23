@@ -30,11 +30,12 @@ note() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 # stdin is the pipe, so best-effort reattach the controlling tty. Never fatal.
 [ -t 0 ] || exec < /dev/tty 2>/dev/null || true
 
-FORCE=0 TARBALL=""
+FORCE=0 TARBALL="" YES=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --force)   FORCE=1; shift;;
     --tarball) TARBALL="${2:?--tarball needs a path}"; shift 2;;
+    --yes)     YES=--yes; shift;;   # non-interactive; used by the in-app updater
     -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) die "unknown argument: $1 (try --help)";;
   esac
@@ -158,4 +159,4 @@ xattr -dr com.apple.quarantine "$DISTDIR" 2>/dev/null || true
 
 # Run the NEW tarball's setup.sh (not exec: our EXIT trap must still clean up,
 # and setup.sh atomically refreshes this very update.sh in $PORTHOME).
-bash "$DISTDIR/setup.sh" --update
+bash "$DISTDIR/setup.sh" --update ${YES:+$YES}

@@ -11,6 +11,11 @@ set(PVZ_DIR ${CMAKE_CURRENT_SOURCE_DIR}/PvZ-Portable)
 set(SAF ${PVZ_DIR}/src/SexyAppFramework)
 set(WINFISH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/WinFish/source/WinFish)
 
+# Human-facing port version (shown in the Options menu, and used by release.sh as
+# the release tag the in-app updater tracks). Single source of truth: PORT_VERSION.
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/PORT_VERSION WINFISH_PORT_VERSION)
+string(STRIP "${WINFISH_PORT_VERSION}" WINFISH_PORT_VERSION)
+
 # Regenerate the flat include dir (WinFish includes <SexyAppFramework/Foo.h> flat-style)
 if(NOT EXISTS ${PVZ_DIR}/src/SexyAppFrameworkFlat/SexyAppFramework/SexyAppBase.h)
 	execute_process(
@@ -61,6 +66,13 @@ list(APPEND FRAMEWORK_SOURCES
 )
 
 file(GLOB GAME_SOURCES ${WINFISH_DIR}/*.cpp)
+
+# Objective-C++ sources are NOT caught by the *.cpp glob; list them explicitly.
+# The in-app update check (NSURLSession) lives here. ARC is set directory-scoped
+# so it applies to both the game and the saver targets that compile this file.
+enable_language(OBJCXX)
+set(GAME_OBJCXX_SOURCES ${WINFISH_DIR}/UpdateCheck.mm)
+set_source_files_properties(${GAME_OBJCXX_SOURCES} PROPERTIES COMPILE_FLAGS "-fobjc-arc")
 
 set(COMMON_INCLUDES
 	${SAF}/platform/default
@@ -116,13 +128,13 @@ set(COMMON_LIBS
 )
 
 # ---------------- Game ----------------
-add_executable(insaniquarium ${GAME_SOURCES} $<TARGET_OBJECTS:sexyapp>)
-target_compile_definitions(insaniquarium PRIVATE IMG_DOWNSCALE=1)
+add_executable(insaniquarium ${GAME_SOURCES} ${GAME_OBJCXX_SOURCES} $<TARGET_OBJECTS:sexyapp>)
+target_compile_definitions(insaniquarium PRIVATE IMG_DOWNSCALE=1 "WINFISH_PORT_VERSION=\"${WINFISH_PORT_VERSION}\"")
 target_include_directories(insaniquarium PRIVATE ${COMMON_INCLUDES} ${WINFISH_DIR})
 target_compile_features(insaniquarium PRIVATE cxx_std_20)
 set_target_properties(insaniquarium PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(insaniquarium PRIVATE ${COMMON_C_FLAGS})
-target_link_libraries(insaniquarium PRIVATE ${COMMON_LIBS})
+target_link_libraries(insaniquarium PRIVATE ${COMMON_LIBS} "-framework Foundation")
 
 # ---------------- Asset staging (Steam copy is read-only source) ----------------
 set(INSANIQUARIUM_ASSETS_DIR "/Users/jake/games/insaniquarium" CACHE PATH
@@ -153,6 +165,7 @@ list(REMOVE_ITEM SAVER_GAME_SOURCES ${WINFISH_DIR}/Window.cpp)
 
 add_library(insaniquarium-saver MODULE
 	${SAVER_GAME_SOURCES}
+	${GAME_OBJCXX_SOURCES}
 	${CMAKE_CURRENT_SOURCE_DIR}/saver/InsaniquariumSaverView.mm
 	$<TARGET_OBJECTS:sexyapp>
 )
@@ -163,7 +176,7 @@ set_target_properties(insaniquarium-saver PROPERTIES
 	MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/saver/Info.plist
 	CXX_EXTENSIONS OFF
 )
-target_compile_definitions(insaniquarium-saver PRIVATE IMG_DOWNSCALE=1)
+target_compile_definitions(insaniquarium-saver PRIVATE IMG_DOWNSCALE=1 "WINFISH_PORT_VERSION=\"${WINFISH_PORT_VERSION}\"")
 target_include_directories(insaniquarium-saver PRIVATE ${COMMON_INCLUDES} ${WINFISH_DIR})
 target_compile_features(insaniquarium-saver PRIVATE cxx_std_20)
 target_compile_options(insaniquarium-saver PRIVATE ${COMMON_C_FLAGS})

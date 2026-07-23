@@ -46,8 +46,13 @@ then run `setup.sh` again. That's normal on a fresh Mac.
 
 ## Updating
 
-When a new build is released, update in place with one command — **quit the
-game first** (Steam can stay open), then paste this into Terminal:
+Once you're on v1.1.1 or later, the easiest way is **in the game**: open
+**Options → Check Updates**, and if there's a new version click **Update Now** —
+it closes, updates itself, and reopens. No Terminal needed.
+
+The one-time way to get onto that first updater-capable version (or to update
+by hand) — **quit the game first** (Steam can stay open), then paste this into
+Terminal:
 
 ```
 curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash

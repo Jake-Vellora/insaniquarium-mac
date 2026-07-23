@@ -38,7 +38,9 @@ done
 
 say()   { printf '\n\033[1m%s\033[0m\n' "$*"; }
 die()   { echo "error: $*" >&2; exit 1; }
-ask()   { local a; read -r -p "$1 [y/N] " a; [ "$a" = y ] || [ "$a" = Y ]; }
+# In --yes / non-interactive mode (e.g. the game's in-app "Update Now" handoff),
+# every yes/no guard auto-proceeds so an EOF stdin can't stall or abort the run.
+ask()   { [ "${NONINTERACTIVE:-0}" = 1 ] && return 0; local a; read -r -p "$1 [y/N] " a; [ "$a" = y ] || [ "$a" = Y ]; }
 pause() { read -r -p "$1 (press Enter) " _; }
 
 # Copy that never truncates the destination inode: write a temp beside it, then
@@ -133,7 +135,7 @@ install_scripts() {
   local f
   # Atomic (temp+rename) so this can safely overwrite an update.sh / reapply.sh
   # that is currently executing.
-  for f in edit_appinfo.py inject.sh reapply.sh install-durability.sh update.sh \
+  for f in edit_appinfo.py inject.sh reapply.sh install-durability.sh update.sh in-app-update.sh \
            com.jake.insaniquarium.steampatch.plist run.sh uninstall.sh; do
     [ -f "$SP/$f" ] && atomic_copy "$SP/$f" "$PORTHOME/$f"
   done
@@ -333,7 +335,8 @@ apps" prompt on launch (clicking Allow works each time). To silence it for good:
   already listed, toggle it off then on; otherwise click "+", add
   /Applications/Insaniquarium.app, and switch it on.
 MSG
-  if ask "Open Full Disk Access settings now?"; then
+  # Never pop System Settings during an unattended in-app update relaunch.
+  if [ "${NONINTERACTIVE:-0}" != 1 ] && ask "Open Full Disk Access settings now?"; then
     open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" || true
   fi
 }
@@ -398,11 +401,12 @@ verify_install() {
   if [ "$ok" = 1 ]; then echo "all good"; else exit 1; fi
 }
 
-CMD=install ASSETS="" CONSOLE=0
+CMD=install ASSETS="" CONSOLE=0 NONINTERACTIVE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     verify) CMD=verify; shift;;
     --update) CMD=update; shift;;
+    --yes) NONINTERACTIVE=1; shift;;
     --assets) ASSETS="${2:?--assets needs a path}"; shift 2;;
     --console-fetch) CONSOLE=1; shift;;
     -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
