@@ -1,5 +1,9 @@
 # Insaniquarium Deluxe Decompilation
 
+> Vendored copy for the Mac port. The Visual Studio solution and the unused
+> Windows-only ImageLib/PakLib were removed; this tree builds via the
+> repo-root CMakeLists.
+
 Based on reverse engineering of Windows executable distributed on PopCap.com.
 
 Status: Fully playable, still has bugs and inaccuracies.
