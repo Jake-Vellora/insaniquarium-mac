@@ -111,6 +111,10 @@ All methods preserve saves, Steam wiring, and screensaver selection.
   release, re-grafts your existing game assets onto the new build, and swaps it
   in with a rollback safety net. It asks for **Full Disk Access** again because
   the app's signature changed.
+- **Verify a download:** every release ships a `.sha256` sidecar, and
+  `update.sh` checks it automatically before installing anything. To check a
+  manually downloaded tarball yourself, put both files in one folder and run
+  `shasum -a 256 -c insaniquarium-mac-<tag>.tar.gz.sha256`.
 - **Built from source** (this repo): `git pull && ./setup.sh`. The full game
   source is in-tree, so a pull brings every fix.
 
@@ -126,7 +130,7 @@ and `PvZ-Portable/` as separate gitignored clones; on such a checkout run
 ## Repository layout
 
 - `CMakeLists.txt`: builds the game, the screensaver, and dev tools
-- `setup.sh`: the one-step installer (also ships in the private dist tarball
+- `setup.sh`: the one-step installer (also ships in the release dist tarball
   made by `scripts/make-dist.sh`)
 - `scripts/package.sh`, `scripts/package-saver.sh`: relocatable bundle
   packaging (dylibbundler + ad-hoc codesign)
@@ -149,6 +153,11 @@ and `PvZ-Portable/` as separate gitignored clones; on such a checkout run
   (tralph3, GPL-3.0).
 - `packaging/libsteam_api.dylib` is Valve's redistributable Steamworks
   library.
-- Everything original to this repo (build system, scripts, screensaver code)
-  is MIT; see `LICENSE`. The vendored game code under `WinFish/` and
-  `PvZ-Portable/` retains its upstream status.
+- Everything original to this repo — the build system, packaging and
+  installer scripts, Steam-integration tooling, and screensaver code — is MIT
+  licensed; see `LICENSE`. The MIT license does NOT cover: the game code
+  vendored under `WinFish/` and `PvZ-Portable/` (which retains its upstream
+  status), Insaniquarium's assets (© PopCap Games / Electronic Arts, never
+  distributed here), vendored third-party code (see
+  `scripts/steam-play-button/sme/NOTICE`), or Valve's redistributable
+  `libsteam_api.dylib`.

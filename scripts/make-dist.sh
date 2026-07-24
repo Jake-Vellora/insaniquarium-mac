@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build the private distributable tarball (payload mode of setup.sh):
+# Build the distributable release tarball (payload mode of setup.sh):
 # prebuilt asset-free app + saver skeletons, the Steam-patch scripts, setup.sh,
 # README, and (by default) a git bundle of the repo for provenance (the game
 # source is vendored in-tree, so one bundle covers everything).
