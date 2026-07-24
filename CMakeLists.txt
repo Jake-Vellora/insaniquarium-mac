@@ -138,10 +138,20 @@ target_compile_options(insaniquarium PRIVATE ${COMMON_C_FLAGS})
 target_link_libraries(insaniquarium PRIVATE ${COMMON_LIBS} "-framework Foundation")
 
 # ---------------- Asset staging (Steam copy is read-only source) ----------------
-set(INSANIQUARIUM_ASSETS_DIR "/Users/jake/games/insaniquarium" CACHE PATH
+# setup.sh always passes -DINSANIQUARIUM_ASSETS_DIR explicitly; these defaults
+# only serve manual `cmake -B build` runs.
+if(DEFINED ENV{INSANIQ_ASSETS})
+	set(_INSANIQ_ASSETS_DEFAULT "$ENV{INSANIQ_ASSETS}")
+else()
+	set(_INSANIQ_ASSETS_DEFAULT "$ENV{HOME}/Library/Application Support/Steam/steamapps/common/Insaniquarium Deluxe")
+endif()
+set(INSANIQUARIUM_ASSETS_DIR "${_INSANIQ_ASSETS_DEFAULT}" CACHE PATH
 	"Path to the owned Insaniquarium Deluxe install (read-only asset source)")
-if(NOT EXISTS ${INSANIQUARIUM_ASSETS_DIR}/properties/resources.xml)
-	message(FATAL_ERROR "Insaniquarium assets not found at ${INSANIQUARIUM_ASSETS_DIR}")
+if(NOT EXISTS "${INSANIQUARIUM_ASSETS_DIR}/properties/resources.xml")
+	message(FATAL_ERROR
+		"Insaniquarium assets not found at '${INSANIQUARIUM_ASSETS_DIR}'.\n"
+		"Pass -DINSANIQUARIUM_ASSETS_DIR=<path to your Insaniquarium Deluxe folder> "
+		"(setup.sh does this automatically), or set INSANIQ_ASSETS in the environment.")
 endif()
 
 set(ASSET_DIRS images sounds music fishsongs data properties)
@@ -160,7 +170,6 @@ add_custom_target(stage_assets DEPENDS ${STAGED_ASSETS}/.staged)
 add_dependencies(insaniquarium stage_assets)
 
 # ---------------- macOS screensaver (.saver) ----------------
-enable_language(OBJCXX)
 set(SAVER_GAME_SOURCES ${GAME_SOURCES})
 list(REMOVE_ITEM SAVER_GAME_SOURCES ${WINFISH_DIR}/Window.cpp)
 
@@ -198,12 +207,3 @@ target_link_libraries(saverhost PRIVATE
 	"-framework ScreenSaver"
 	"-framework Cocoa"
 )
-
-# ---------------- M1 rendering spike ----------------
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/spike/main.cpp)
-	add_executable(spike ${CMAKE_CURRENT_SOURCE_DIR}/spike/main.cpp $<TARGET_OBJECTS:sexyapp>)
-	target_include_directories(spike PRIVATE ${COMMON_INCLUDES})
-	target_compile_features(spike PRIVATE cxx_std_20)
-	target_compile_options(spike PRIVATE ${COMMON_C_FLAGS})
-	target_link_libraries(spike PRIVATE ${COMMON_LIBS})
-endif()

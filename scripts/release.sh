@@ -5,16 +5,15 @@
 #
 # Prereqs: clean git tree on main, in sync with origin (the game source is
 # vendored in-tree, so main is the single source of truth); `gh` authed.
-# Usage: release.sh [--tag <tag>] [--force-build]
+# Usage: release.sh [--tag <tag>]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-TAG=""; FORCE_BUILD=0
+TAG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --tag) TAG="${2:?--tag needs a value}"; shift 2;;
-    --force-build) FORCE_BUILD=1; shift;;
-    *) echo "usage: release.sh [--tag <tag>] [--force-build]"; exit 2;;
+    *) echo "usage: release.sh [--tag <tag>]"; exit 2;;
   esac
 done
 # Default tag = the port version (single source of truth in PORT_VERSION), so the
@@ -51,6 +50,8 @@ scripts/make-dist.sh --no-source --release "$TAG"
 TARBALL="build/dist/insaniquarium-mac-${TAG}.tar.gz"
 [ -f "$TARBALL" ] || die "expected tarball not produced: $TARBALL"
 [ -f "$TARBALL.sha256" ] || die "checksum sidecar missing: $TARBALL.sha256"
+TARBALL_SHA="$(awk 'NR==1{print $1}' "$TARBALL.sha256")"
+[ -n "$TARBALL_SHA" ] || die "could not read sha256 from $TARBALL.sha256"
 
 # --- Release notes -----------------------------------------------------------
 NOTES="$(mktemp "${TMPDIR:-/tmp}/insaniq-notes.XXXXXX")"
@@ -66,6 +67,14 @@ trap 'rm -f "$NOTES"' EXIT
   echo
   echo "Your saves, Steam Play button, and screensaver selection are preserved."
   echo "After updating, re-grant Full Disk Access if prompted (the app's signature changed)."
+  echo
+  echo "### Verify your download"
+  echo
+  echo '```'
+  echo "shasum -a 256 -c insaniquarium-mac-${TAG}.tar.gz.sha256"
+  echo "# expected: ${TARBALL_SHA}  insaniquarium-mac-${TAG}.tar.gz"
+  echo '```'
+  echo "(update.sh checks this automatically before installing.)"
   echo
   echo "### Changes"
   echo "$CHANGES"
