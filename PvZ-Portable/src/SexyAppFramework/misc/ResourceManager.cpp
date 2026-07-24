@@ -31,7 +31,7 @@
 #include "graphics/ImageFont.h"
 //#include "graphics/SysFont.h"
 #include "imagelib/ImageLib.h"
-#include "../../Sexy.TodLib/TodCommon.h"
+#include "Debug.h"
 //#define SEXY_PERF_ENABLED
 #include "PerfTimer.h"
 
@@ -326,7 +326,7 @@ bool ResourceManager::ParseImageResource(XMLElement &theElement)
 	if (anItr != theElement.mAttributes.end())
 	{
 		aRes->mRows = atoi(anItr->second.c_str());
-		TOD_ASSERT(aRes->mRows > 0);  // Resource contract: sprite sheet rows must be positive.
+		DBG_ASSERTE(aRes->mRows > 0);  // Resource contract: sprite sheet rows must be positive.
 	}
 	else
 		aRes->mRows = 1;
@@ -335,7 +335,7 @@ bool ResourceManager::ParseImageResource(XMLElement &theElement)
 	if (anItr != theElement.mAttributes.end())
 	{
 		aRes->mCols = atoi(anItr->second.c_str());
-		TOD_ASSERT(aRes->mCols > 0);  // Resource contract: sprite sheet cols must be positive.
+		DBG_ASSERTE(aRes->mCols > 0);  // Resource contract: sprite sheet cols must be positive.
 	}
 	else
 		aRes->mCols = 1;

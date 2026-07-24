@@ -1,9 +1,0 @@
-src/
-pkg/
-pvz-portable/
-
-*.tar
-*.tar.*
-*.zip
-*.7z
-*.pak

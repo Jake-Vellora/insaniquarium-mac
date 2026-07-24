@@ -1,8 +1,9 @@
 # PvZ-Portable
 
-<div align="center">
-  <img src="icon-readme.png" alt="PvZ-Portable" width="450">
-</div>
+> Vendored copy for the Insaniquarium Mac port: only the SexyAppFramework is
+> used here. The PvZ game code, platform ports (iOS/Android/wasm/etc.), logo
+> art, and other-project files were removed; this tree builds via the
+> repo-root CMakeLists.
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wszqkzqk/PvZ-Portable)
 
