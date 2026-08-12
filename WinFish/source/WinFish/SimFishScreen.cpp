@@ -793,7 +793,7 @@ Sexy::SimFishScreen::SimFishScreen(WinFishApp* theApp)
 	mBubbleMgr->SetBubbleConfig(10, 3);
 	mBubbleMgr->UpdateALot();
 
-	memset(mObjectButtons, 0, 20);
+	memset(mObjectButtons, 0, sizeof(mObjectButtons));
 
 	std::multimap<time_t, GameObject*> aFishMap;
 
@@ -1213,10 +1213,18 @@ SexyString Sexy::SimFishScreen::GetAdditionalNotes(GameObject* theObject)
 	default:
 	{
 		SexyString aLastLike = GetLastSpecialLike(theObject);
-		return StrFormat("Likes %s, %s, and %s.", 
-			LIKES[theObject->mLikes[0]].c_str(),
-			LIKES[theObject->mLikes[1]].c_str(),
-			aLastLike.empty() ? LIKES[theObject->mLikes[2]].c_str() : aLastLike.c_str()
+		const int aNumLikes = sizeof(LIKES) / sizeof(LIKES[0]);
+		int aLike[3];
+		for (int i = 0; i < 3; i++)
+		{
+			aLike[i] = theObject->mLikes[i];
+			if (aLike[i] < 0 || aLike[i] >= aNumLikes)
+				aLike[i] = 0;
+		}
+		return StrFormat("Likes %s, %s, and %s.",
+			LIKES[aLike[0]].c_str(),
+			LIKES[aLike[1]].c_str(),
+			aLastLike.empty() ? LIKES[aLike[2]].c_str() : aLastLike.c_str()
 		);
 	}
 	}
