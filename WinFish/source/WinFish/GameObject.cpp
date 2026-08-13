@@ -60,6 +60,8 @@ GameObject::GameObject()
 	mCanBeEatenDelay = 0;
 	mBoughtTimeDaySecs = 0;
 	mLastMentalStateUpdateTime = 0;
+	mTimeBought = 0;
+	mShellPrice = 0;
 	mTimesFedToday = 0;
 	mRandomHappiestMentalId = 0;
 	mPreNamedTypeId = -1;
@@ -102,7 +104,7 @@ int Sexy::GameObject::GetShellPrice()
 
 		const __time64_t LIFESPAN_SECONDS = 86400;
 
-		if (currentTime >= mTimeBought + LIFESPAN_SECONDS)
+		if (currentTime - mTimeBought <= LIFESPAN_SECONDS)
 			return -1;
 	}
 
@@ -490,7 +492,7 @@ void Sexy::GameObject::Unk03(long long theTodayInSec, __time64_t theCurTime)
 	if (mTodayBought)
 	{
 		const time_t ONE_DAY_IN_SECONDS = 86400;
-		if (mTimeBought + ONE_DAY_IN_SECONDS <= theCurTime)
+		if (theCurTime < mTimeBought || theCurTime - mTimeBought >= ONE_DAY_IN_SECONDS)
 			mTodayBought = false;
 	}
 

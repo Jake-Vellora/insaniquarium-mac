@@ -296,6 +296,7 @@ namespace Sexy
 		void					Unk13();
 		void					Unk14(bool unk);
 		void					Unk15();
+		void					HealStrayPrestoIds();
 		void					DetermineAlienSpawnCoordsVT();
 		int						GetNextVirtualTankId();
 		bool					HasAnyFish();

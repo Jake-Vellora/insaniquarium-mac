@@ -26,6 +26,9 @@ Sexy::PetsScreen::PetsScreen(WinFishApp* theApp)
 	m0x128 = -1;
 	m0x12c = -1;
 	m0x120 = 0;
+	// Only the indices of pets actually found in the tank get written below; the rest are
+	// compared against the checkbox state in ButtonDepress, so they must not be heap garbage.
+	memset(m0x100, 0, sizeof(m0x100));
 
 	mReturnButton = MakeDialogButton2(99, this, "Click Here To Continue", IMAGE_MAINBUTTON);
 

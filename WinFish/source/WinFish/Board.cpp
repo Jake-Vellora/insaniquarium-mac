@@ -343,17 +343,24 @@ bool Board::RemoveGameObjectFromLists(GameObject* theObject, bool aFlag)
 	case TYPE_OTHER_TYPE_PET:
 	{
 		OtherTypePet* aPet = (OtherTypePet*)theObject;
-		if (aPet->mOtherTypePetType >= PET_STINKY && aPet->mOtherTypePetType < PET_END)
-			mPetsInTank[aPet->mOtherTypePetType]--;
+		size_t aPrevSize = mOtherTypePetList->size();
 		mOtherTypePetList->erase(std::remove(mOtherTypePetList->begin(), mOtherTypePetList->end(), (OtherTypePet*)theObject), mOtherTypePetList->end());
+		// Only count down when this call is what actually removed the pet. A hidden pet is
+		// already out of the list, and decrementing twice drives the count negative.
+		if (mOtherTypePetList->size() != aPrevSize &&
+			aPet->mOtherTypePetType >= PET_STINKY && aPet->mOtherTypePetType < PET_END)
+			mPetsInTank[aPet->mOtherTypePetType]--;
 		break;
 	}
 	case TYPE_FISH_TYPE_PET:
 	{
 		FishTypePet* aPet = (FishTypePet*)theObject;
-		if (aPet->mFishTypePetType >= PET_STINKY && aPet->mFishTypePetType < PET_END)
-			mPetsInTank[aPet->mFishTypePetType]--;
+		size_t aPrevSize = mFishTypePetList->size();
 		mFishTypePetList->erase(std::remove(mFishTypePetList->begin(), mFishTypePetList->end(), (FishTypePet*)theObject), mFishTypePetList->end());
+		// See the OtherTypePet case above.
+		if (mFishTypePetList->size() != aPrevSize &&
+			aPet->mFishTypePetType >= PET_STINKY && aPet->mFishTypePetType < PET_END)
+			mPetsInTank[aPet->mFishTypePetType]--;
 		break;
 	}
 	case TYPE_ALIEN:
@@ -2657,6 +2664,7 @@ bool Sexy::Board::LoadGame(SexyString theSavePath)
 			}
 			if (mApp->mGameMode == GAMEMODE_VIRTUAL_TANK)
 			{
+				HealStrayPrestoIds();
 				MakeVirtualTankButtons();
 				WidgetSetupVT();
 				Unk13();
@@ -3173,6 +3181,92 @@ void Sexy::Board::Unk15()
 	{
 		GameObject* anObj = *it;
 		anObj->RemoveHelper02(true);
+	}
+}
+
+// Saves written before the SpawnPet id fix hold Prestos at mVirtualTankId 19, which is a FISH
+// slot: the pet screen can neither see nor remove them, the fish screen lists them as guppies
+// with epoch dates, and every visit to the pet screen mints another one. Keep one, move it to
+// its real pet slot, drop the duplicates, and repair the bookkeeping they corrupted.
+// Must run before Unk13(), which would otherwise decay the survivor on the very first pass.
+void Sexy::Board::HealStrayPrestoIds()
+{
+	if (mApp->mGameMode != GAMEMODE_VIRTUAL_TANK)
+		return;
+
+	// Match id 19 exactly AND discriminate on mType. Neither test works alone: 19 is a
+	// legitimate fish slot that GetNextVirtualTankId hands to Bubbulator owners, and a morphed
+	// Presto carries some other species, so the pet's own type says nothing about it.
+	std::vector<GameObject*> aStrays;
+	for (GameObjectSet::iterator it = mGameObjectSet.begin(); it != mGameObjectSet.end(); ++it)
+	{
+		GameObject* anObj = *it;
+		if (anObj->mVirtualTankId == PET_PRESTO &&
+			(anObj->mType == TYPE_FISH_TYPE_PET || anObj->mType == TYPE_OTHER_TYPE_PET))
+			aStrays.push_back(anObj);
+	}
+
+	if (!aStrays.empty())
+	{
+		// Keep a visible one if there is one, so the player does not lose the pet they can see.
+		size_t aKeep = 0;
+		for (size_t i = 0; i < aStrays.size(); i++)
+		{
+			if (aStrays[i]->mShown)
+			{
+				aKeep = i;
+				break;
+			}
+		}
+		aStrays[aKeep]->mVirtualTankId = PET_PRESTO + 1000;
+
+		for (size_t i = 0; i < aStrays.size(); i++)
+		{
+			if (i == aKeep)
+				continue;
+			GameObject* aDupe = aStrays[i];
+			// A hidden pet was never added to the widget manager on load and is not in the
+			// type lists - it lives only in mGameObjectSet.
+			if (aDupe->mShown)
+				aDupe->RemoveHelper02(false);
+			else
+				mGameObjectSet.erase(aDupe);
+			mApp->SafeDeleteWidget(aDupe);
+		}
+
+		mShouldSave = true;
+	}
+
+	// mPetsInTank may already be negative from the old unguarded decrement, and the deletions
+	// above shift it again. Rebuild it from the lists it mirrors; hidden pets are deliberately
+	// not counted, which is exactly what those lists hold.
+	memset(mPetsInTank, 0, sizeof(mPetsInTank));
+	for (std::vector<FishTypePet*>::iterator it = mFishTypePetList->begin(); it != mFishTypePetList->end(); ++it)
+	{
+		int aType = (*it)->mFishTypePetType;
+		if (aType >= PET_STINKY && aType < PET_END)
+			mPetsInTank[aType]++;
+	}
+	for (std::vector<OtherTypePet*>::iterator it = mOtherTypePetList->begin(); it != mOtherTypePetList->end(); ++it)
+	{
+		int aType = (*it)->mOtherTypePetType;
+		if (aType >= PET_STINKY && aType < PET_END)
+			mPetsInTank[aType]++;
+	}
+
+	// Pets saved before SpawnPet started seeding this still carry constructor defaults, which
+	// Unk13 would immediately decay to "Horribly Depressed".
+	for (GameObjectSet::iterator it = mGameObjectSet.begin(); it != mGameObjectSet.end(); ++it)
+	{
+		GameObject* anObj = *it;
+		if ((anObj->mType == TYPE_FISH_TYPE_PET || anObj->mType == TYPE_OTHER_TYPE_PET) &&
+			anObj->mVirtualTankId > -1 && anObj->mLastMentalStateUpdateTime == 0)
+		{
+			anObj->mTimeBought = time(NULL);
+			anObj->mShellPrice = 0;
+			anObj->BoughtSetup();
+			mShouldSave = true;
+		}
 	}
 }
 
@@ -5363,7 +5457,17 @@ GameObject* Sexy::Board::SpawnPet(int thePetType, int theX, int theY, bool flag1
 		aPet = new FishTypePet(theX, theY, thePetType, flag1);
 	if (mApp->mGameMode == GAMEMODE_VIRTUAL_TANK && !flag2)
 	{
-		aPet->mVirtualTankId = flag1 ? PET_PRESTO : thePetType + 1000;
+		// A Presto keeps its own pet slot no matter which species it is currently wearing.
+		// The +1000 applies to BOTH arms - binding it to the false arm alone drops a Presto
+		// into the 0..19 fish-slot range, where the fish screens pick it up as a guppy.
+		aPet->mVirtualTankId = (flag1 ? PET_PRESTO : thePetType) + 1000;
+
+		// Pets never go through the store, so nothing else seeds their virtual-tank
+		// bookkeeping. Without this they start at day 0 and Unk03 decays them straight
+		// to "Horribly Depressed", which also pins their coin drops at the slowest rate.
+		aPet->mTimeBought = time(NULL);
+		aPet->mShellPrice = 0;
+		aPet->BoughtSetup();
 	}
 	AddGameObject(aPet);
 	mWidgetManager->AddWidget(aPet);
