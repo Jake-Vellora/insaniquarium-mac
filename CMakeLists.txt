@@ -15,6 +15,11 @@ set(WINFISH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/WinFish/source/WinFish)
 # the release tag the in-app updater tracks). Single source of truth: PORT_VERSION.
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/PORT_VERSION WINFISH_PORT_VERSION)
 string(STRIP "${WINFISH_PORT_VERSION}" WINFISH_PORT_VERSION)
+# Baked in at configure time, so a bump must force a reconfigure. Without this
+# an existing build dir keeps compiling the old string, and make-dist.sh (which
+# only runs cmake --build) ships a binary labelled with the previous version.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+	${CMAKE_CURRENT_SOURCE_DIR}/PORT_VERSION)
 
 # Regenerate the flat include dir (WinFish includes <SexyAppFramework/Foo.h> flat-style)
 if(NOT EXISTS ${PVZ_DIR}/src/SexyAppFrameworkFlat/SexyAppFramework/SexyAppBase.h)
