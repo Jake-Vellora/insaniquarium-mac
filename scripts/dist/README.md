@@ -47,11 +47,11 @@ then run `setup.sh` again. That's normal on a fresh Mac.
 ## Updating
 
 Once you're on v1.1.1 or later, the easiest way is **in the game**: open
-**Options → Check Updates**, and if there's a new version click **Update Now** —
-it closes, updates itself, and reopens. No Terminal needed.
+**Options → Check Updates**, and if there's a new version click **Update Now**.
+It closes, updates itself, and reopens. No Terminal needed.
 
 The one-time way to get onto that first updater-capable version (or to update
-by hand) — **quit the game first** (Steam can stay open), then paste this into
+by hand): **quit the game first** (Steam can stay open), then paste this into
 Terminal:
 
 ```
@@ -59,11 +59,11 @@ curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/dow
 ```
 
 Or double-click **Update Insaniquarium.command** in this folder (the first time,
-macOS may block it — right-click it and choose **Open**).
+macOS may block it, so right-click it and choose **Open**).
 
 The update swaps the app and screensaver only. It **keeps**: your saves and
 tanks, the Steam Play-button wiring, and your screensaver selection. The one
-thing it asks again: **Full Disk Access** — updating changes the app's
+thing it asks again: **Full Disk Access**, because updating changes the app's
 signature, so macOS drops the grant. Until you re-grant it the game shows an
 "access data from other apps" prompt on launch (clicking Allow works); to
 silence it, re-add or toggle the app in System Settings > Privacy & Security >
@@ -90,6 +90,6 @@ Full Disk Access. Run `bash setup.sh verify` afterward to confirm.
   tralph3's Steam-Metadata-Editor, GPL; see `scripts/sme/NOTICE`)
 - `Update Insaniquarium.command`: double-click updater
 - `RELEASE`: which release this tarball is (the updater uses it)
-- `src/`: a git bundle of the full source, for rebuilding — only in the "full"
+- `src/`: a git bundle of the full source, for rebuilding; only in the "full"
   tarball; release downloads are slim and omit it (the source is on GitHub)
 - `SHA256SUMS`: file checksums

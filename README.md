@@ -101,9 +101,9 @@ All methods preserve saves, Steam wiring, and screensaver selection.
 
 - **In the game (easiest):** on v1.1.1+, open **Options → Check Updates**; if a
   new version is available, click **Update Now** and the game closes, updates
-  itself, and reopens — no Terminal. (It also prompts weekly on its own.)
-- **From a release tarball** — and the one-time way to get onto a version that
-  has the in-app updater: quit the game and run
+  itself, and reopens, no Terminal needed. (It also prompts weekly on its own.)
+- **From a release tarball**, which is also the one-time way to get onto a
+  version that has the in-app updater: quit the game and run
   ```
   curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash
   ```
@@ -158,9 +158,9 @@ and `PvZ-Portable/` as separate gitignored clones; on such a checkout run
   (tralph3, GPL-3.0).
 - `packaging/libsteam_api.dylib` is Valve's redistributable Steamworks
   library.
-- Everything original to this repo — the build system, packaging and
-  installer scripts, Steam-integration tooling, and screensaver code — is MIT
-  licensed; see `LICENSE`. The MIT license does NOT cover: the game code
+- Everything original to this repo (the build system, packaging and installer
+  scripts, Steam-integration tooling, and screensaver code) is MIT licensed;
+  see `LICENSE`. The MIT license does NOT cover: the game code
   vendored under `WinFish/` and `PvZ-Portable/` (which retains its upstream
   status), Insaniquarium's assets (© PopCap Games / Electronic Arts, never
   distributed here), vendored third-party code (see
