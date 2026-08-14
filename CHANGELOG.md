@@ -5,6 +5,36 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.1.4 - 2026-08-14
+
+- The alien warning no longer repeats itself in Challenge tanks. Every few waves
+  the game steps the difficulty up and puts a blinking red banner on screen to
+  say so, but the banner was going up with no words of its own, so it showed the
+  previous wave's warning again. That is why an attack seemed to be announced a
+  second time just after you had cleared one. It now reads WARNING! ALIEN
+  DIFFICULTY INCREASED, the way it always should have.
+- The Hall of Fame shows your real Adventure times. The Adventure page was
+  listing your name against times taken from the Challenge table, so the entries
+  were in the right order with the wrong numbers, frozen at the ones the game
+  ships with. Your times were being recorded correctly all along, so your
+  existing records appear as soon as you open the page.
+- The screensaver shows your current tank. It reads the tank from a folder only
+  the game can write to, and the game was only writing there when it started and
+  when it quit. It now hands the tank over every time it saves, so what you see
+  is what you last left in the Virtual Tank.
+- Your screensaver's play carries back into the game. The tank the screensaver
+  had been playing was kept off to one side and thrown away the next time you
+  opened the game. It now continues where the screensaver left it, the way the
+  original Windows version worked.
+- The game tells you when the screensaver cannot see your tank. Insaniquarium
+  needs Full Disk Access to pass the tank across, and installing an update clears
+  that permission, which used to leave the screensaver quietly stuck on an old
+  tank forever. The game now notices, explains it, and offers to open the right
+  settings page for you.
+- Deleting a profile no longer leaves its tank behind for the screensaver.
+
+Thanks again to Jakob for finding and reporting all of these.
+
 ## 1.1.3 - 2026-08-13
 
 - Presto no longer duplicates himself. Adding Presto to your Virtual Tank used
