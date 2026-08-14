@@ -148,11 +148,8 @@ and `PvZ-Portable/` as separate gitignored clones; on such a checkout run
   macOS/SDL2 groundwork by [kyle-sylvestre](https://github.com/kyle-sylvestre)
   (WinFish + PvZ-Portable forks), framework originally from the PvZ-Portable
   project.
-- Bug hunting: **Jakob**, whose Virtual Tank testing for 1.1.3 turned up the
-  infinite Presto duplication, the depressed 1970 guppies and the Fish screen
-  crashes. One report thread unravelled into eight fixes, two of them crashes
-  that hit players who had never touched a Presto. Thanks also to the player on
-  Reddit who reported the Tank 4 shop and Fish screen bugs fixed in 1.1.2.
+- Bug hunting: **Jakob**, whose Virtual Tank testing uncovered the
+  infinite Presto duplication glitch, and the horribly depressed guppies born in 1970 most notably.
 - `scripts/steam-play-button/sme/appinfo.py` is from
   [Steam-Metadata-Editor](https://github.com/tralph3/Steam-Metadata-Editor)
   (tralph3, GPL-3.0).
