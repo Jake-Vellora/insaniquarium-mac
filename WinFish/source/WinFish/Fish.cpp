@@ -634,20 +634,22 @@ int Sexy::Fish::SpecialReturnValue()
 int Sexy::Fish::GetShellPrice()
 {
     int aVal = GameObject::GetShellPrice();
-    if (mVirtualFish)
-    {
-        if (aVal < 0)
-            aVal = mShellPrice / 2;
 
-        if (aVal > 0)
-        {
-            if (mSize == TYPE_MEDIUM_GUPPY)
-                aVal *= 2;
-            else if (mSize == TYPE_BIG_GUPPY)
-                aVal *= 3;
-            else if (mSize == TYPE_CROWNED_GUPPY)
-                aVal *= 5;
-        }
+    // Two independent guards in the original: 0x4df138 tests mVirtualFish (0x22a) for
+    // the fallback, 0x4df150 tests mIsGuppy (0x229) for the size multiplier. The
+    // decompilation nested them both under mVirtualFish, which is set only for breeder
+    // babies, so an ordinary guppy you grew was denied the multiplier.
+    if (mVirtualFish && aVal < 0)
+        aVal = mShellPrice / 2;
+
+    if (mIsGuppy && aVal > 0)
+    {
+        if (mSize == TYPE_MEDIUM_GUPPY)
+            aVal *= 2;
+        else if (mSize == TYPE_BIG_GUPPY)
+            aVal *= 3;
+        else if (mSize == TYPE_CROWNED_GUPPY)
+            aVal *= 5;
     }
     return aVal;
 }

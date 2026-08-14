@@ -31,6 +31,13 @@ language (what changed and why they care, not commit subjects).
 - Virtual Tank pets are no longer permanently miserable. They were being created
   without the bookkeeping every fish gets, which pinned their mood at its lowest
   value and quietly made them drop coins as slowly as possible.
+- Growing a guppy is worth doing again. A guppy you have fed up to medium, large
+  or crowned now sells for two, three or five times the base resale value, the
+  way the original game rewards it. Until now every guppy sold for a flat half
+  price no matter how big you had grown it.
+- The Fish screen responds properly again. Its buttons make the usual click
+  sound, and double clicking a fish hides or shows it, which had quietly stopped
+  working.
 
 Thanks to Jakob for finding and reporting all of these.
 

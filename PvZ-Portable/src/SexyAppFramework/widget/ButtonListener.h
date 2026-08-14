@@ -32,6 +32,11 @@ class ButtonListener
 {
 public:
 	virtual void			ButtonPress(int theId) {}
+	// The original PopCap framework passed the click count here; this vintage of the
+	// framework dropped it, which silently orphaned any listener that declared the
+	// two-argument form. Default forwards, so existing one-argument listeners are
+	// unaffected.
+	virtual void			ButtonPress(int theId, int theClickCount) { ButtonPress(theId); }
 	virtual void			ButtonDepress(int theId) {}
 	virtual void			ButtonDownTick(int theId) {}
 	virtual void			ButtonMouseEnter(int theId) {}
