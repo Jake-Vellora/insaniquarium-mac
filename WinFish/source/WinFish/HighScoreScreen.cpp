@@ -224,7 +224,15 @@ void Sexy::HighScoreScreen::DrawGameModePage(Graphics* g)
 			g->DrawString(aStr, aTankStrXOffset, aTextY);
 
 			aStr = "s";
-			if (mPage != PAGE_TIME && aCurList->size() >= aLevel)
+			if (mPage == PAGE_ADV)
+			{
+				// The per-level list is the one RecordAdventureHighScore writes,
+				// and the one line 220 already took the name from.
+				HighScoreList* aLvlList = aMgr->GetPerLevelScoresList(aTank, aLevel);
+				if (!aLvlList->empty())
+					aStr = GetPlayTimeString(aLvlList->front().mScore);
+			}
+			else if (mPage != PAGE_TIME && aCurList->size() >= aLevel)
 				aStr = GetPlayTimeString(it->mScore);
 			else if (aCurList->size() >= aLevel)
 				aStr = StrFormat("%d", it->mScore);

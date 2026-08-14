@@ -23,6 +23,7 @@
 #include "ProfileMgr.h"
 #include "BubbleMgr.h"
 #include "MessageWidget.h"
+#include "SaverBridge.h"
 #include "Res.h"
 
 #include "Fish.h"
@@ -942,6 +943,7 @@ void Board::Update()
 
 			if (m0x45c % aDifIncreaseProb == 0 && m0x45c != 0)
 			{
+				mMessageWidget->mMessage = "WARNING! ALIEN DIFFICULTY INCREASED!";
 				mMessageWidget->mIsBlinking = true;
 				mMessageWidget->mMessageTimer = 274;
 				mMessageWidget->mColor1 = Color(255, 50, 50, 255);
@@ -2308,6 +2310,12 @@ void Sexy::Board::SaveCurrentGame()
 		MkDir(GetAppDataFolder().append("userdata"));
 		SaveGame(aFileStr);
 	}
+
+	// Keep the screensaver's copy of the tank current instead of making it wait
+	// for a clean exit. Inside the screensaver the save dir already is the
+	// container, so there is nothing to push.
+	if (!mApp->IsScreenSaver())
+		PushSavesToSaverContainer(GetAppDataFolder(), true);
 }
 
 void Sexy::Board::SaveGame(const SexyString& theSavePath)
