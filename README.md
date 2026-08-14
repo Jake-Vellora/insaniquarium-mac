@@ -86,8 +86,11 @@ always safe to rerun.
 4. **The screensaver**: a native `.saver` bundle running the game's Virtual
    Tank, with two-way save sync (screensaver earnings flow back into the game,
    like the original Windows release intended). 
-   **PLEASE NOTE THAT THE SCREENSAVER IS BURIED IN THE APPLE SETTINGS!**
+
+## PLEASE NOTE THAT THE SCREENSAVER IS BURIED IN THE APPLE SETTINGS!
+
    Path to it is: Settings > Wallpaper > Screen Saver... (Top section of the window, next to the preview) > Scroll all the way down to Other > Show All > Scroll all the way down to Insaniquarium
+   
    Click it then click done. Thanks Tim Apple, very cool.
 
 ## After setup
