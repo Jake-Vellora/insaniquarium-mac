@@ -378,8 +378,23 @@ bool SexyAppBase::ProcessDeferredMessages(bool singleMessage)
 					(event.button.button == SDL_BUTTON_LEFT) ? 1 :
 					(event.button.button == SDL_BUTTON_RIGHT) ? -1 :
 					3;
-				if (event.button.clicks == 2)
-					btn = (event.button.button == SDL_BUTTON_LEFT) ? 2 : -2;
+				// Only the left and right buttons have a double click encoding in this
+				// framework (2 and -2); the middle button's code is 3 and must be left
+				// alone. Encoding a middle double click as -2 made MouseDown set the
+				// RIGHT bit (0x02) while MouseUp cleared the MIDDLE bit (0x04), so
+				// mDownButtons never cleared and mLastDownWidget captured every
+				// subsequent click.
+				//
+				// SDL keeps incrementing clicks (1,2,3,4...) for as long as the double
+				// click interval holds, whereas Windows alternates DOWN/DBLCLK, which is
+				// what the original game saw. Treat every even click as the double.
+				if ((event.button.clicks % 2) == 0)
+				{
+					if (event.button.button == SDL_BUTTON_LEFT)
+						btn = 2;
+					else if (event.button.button == SDL_BUTTON_RIGHT)
+						btn = -2;
+				}
 
 				mWidgetManager->MouseDown(x, y, btn);
 				break;

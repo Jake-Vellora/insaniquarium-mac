@@ -38,6 +38,12 @@ language (what changed and why they care, not commit subjects).
 - The Fish screen responds properly again. Its buttons make the usual click
   sound, and double clicking a fish hides or shows it, which had quietly stopped
   working.
+- Double clicking with the scroll wheel button no longer breaks the mouse. It
+  used to leave the game ignoring every click afterwards until you right clicked
+  somewhere, because the press and the release were reported as two different
+  buttons.
+- Rapid repeated clicking behaves like the original again. Four quick clicks in
+  a row now count as two double clicks rather than one.
 
 Thanks to Jakob for finding and reporting all of these.
 

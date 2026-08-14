@@ -1090,7 +1090,9 @@ void Sexy::SimFishScreen::DrawOverlay(Graphics* g)
 void Sexy::SimFishScreen::ButtonPress(int theId, int theClickCount)
 {
 	mApp->PlaySample(SOUND_BUTTONCLICK);
-	if (theClickCount == 2 && theId < 20)
+	// Unsigned, matching the original: 0x5190b0 is cmpl $0x13 / ja, so a negative id
+	// takes the early out rather than the toggle path.
+	if (theClickCount == 2 && (unsigned)theId < 20)
 		ButtonDepress(102);
 }
 
