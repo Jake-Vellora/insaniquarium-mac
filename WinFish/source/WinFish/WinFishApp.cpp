@@ -16,6 +16,7 @@
 #include "WinFishApp.h"
 #include "WinFishCommon.h"
 #include "InternetManager.h"
+#include "SaverBridge.h"
 #include "UpdateCheck.h"
 #include "Res.h"
 
@@ -856,6 +857,10 @@ void Sexy::WinFishApp::ButtonDepress(int theId)
 		KillDialog(DIALOG_UPDATE_ASK);
 		DoUpdateCheckDialog();
 		break;
+	case DIALOG_SAVER_ACCESS:
+		KillDialog(DIALOG_SAVER_ACCESS);
+		OpenFullDiskAccessSettings();
+		break;
 	case DIALOG_UPDATE_CHECK:
 		// Cancel button on the "contacting..." spinner: drop the in-flight check.
 		KillDialog(DIALOG_UPDATE_CHECK);
@@ -1592,6 +1597,10 @@ void Sexy::WinFishApp::SaveCurrentUserData()
 {
 	if (mCurrentProfile)
 		mCurrentProfile->Save();
+
+	// Shells and unlocks the screensaver should see next time it runs.
+	if (!IsScreenSaver())
+		PushSavesToSaverContainer(GetAppDataFolder(), true);
 }
 
 void Sexy::WinFishApp::SaveVirtualTankAndUserData()
@@ -2286,6 +2295,22 @@ void Sexy::WinFishApp::TitleScreenIsFinished()
 	}
 
 	SwitchToGameSelector();
+
+	// The screensaver reads the tank from its own sandboxed folder, and only
+	// this app can put it there. Installing an update re-signs the app, which
+	// clears its Full Disk Access, and the copy then fails silently - which
+	// looks exactly like a screensaver that stopped updating.
+	if (SaverBridgePushFailed())
+	{
+		DoDialog(DIALOG_SAVER_ACCESS, true, "Screensaver",
+			"The screensaver can't see your tank, so it keeps showing an old one.\n"
+			"Insaniquarium needs Full Disk Access to hand the tank over, and\n"
+			"installing an update clears that permission.\n\n"
+			"In Privacy & Security > Full Disk Access, switch Insaniquarium off\n"
+			"and back on, or add /Applications/Insaniquarium.app if it isn't\n"
+			"listed. Open those settings now?",
+			"", Dialog::BUTTONS_YES_NO);
+	}
 }
 
 void Sexy::WinFishApp::WFAShowResourceError(bool doExit)
