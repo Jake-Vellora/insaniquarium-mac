@@ -78,6 +78,10 @@ bool Sexy::PushSavesToSaverContainer(const std::string& theSaveDir, bool theThro
 			if (!anEntry.is_regular_file())
 				continue;
 			const std::string aName = anEntry.path().filename().string();
+			// scr<N>.dat only ever travels inbound. Pushing our imported copy
+			// back would re-seed the container with earnings we just spent.
+			if (IsEarningsFile(aName))
+				continue;
 			if (!CopyFileKeepingTime(anEntry.path(), aDest / "userdata" / aName))
 			{
 				// Quiet after the first miss: the push repeats on every save.
