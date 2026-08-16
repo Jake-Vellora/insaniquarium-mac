@@ -5,6 +5,37 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.1.5 - 2026-08-16
+
+- Prego has her babies again in the Virtual Tank. She would swim up, begin
+  giving birth, then think better of it and carry on, over and over, so a tank
+  with Prego in it never gained a single guppy. Before each birth she checks how
+  many guppies are already swimming around, and that count was never being
+  filled in, so she was reading whatever happened to be lying in memory and
+  deciding the tank was full. No other pet asks that question, which is why
+  everything else behaved. She now has one baby at a time and waits for it to be
+  eaten or grown before having another, exactly as she always should have.
+- Challenge Mode pays the right number of shells. Every tank was handing out the
+  next tank's prize, so tank 1 paid 5,000 instead of 2,000, tank 2 paid 10,000
+  instead of 5,000, and tank 3 paid 20,000 instead of 10,000. Tank 4, the
+  hardest of them, fell off the end of the list and paid nothing at all. The
+  rewards are 2,000, 5,000, 10,000 and 20,000 again, the way the original game
+  pays them. Shells you have already banked are yours to keep.
+- The Challenge tank picker tells you which tank to beat. A locked tank was
+  naming itself, so the fourth one read "Complete Tank 4 in Challenge Mode to
+  Unlock this Tank" when what you actually needed was tank 3. It now names the
+  tank before it. Time Trial was already right and is untouched.
+- Story pages are numbered from one. The counter above each story read "0 of 33"
+  through "32 of 33", and now reads "1 of 33" through "33 of 33".
+- The Terminal one-liner for updating works. Pasting it in and pressing return
+  did nothing whatsoever: no output, no error, just a prompt sitting there. The
+  script was handed to the shell through a pipe and then closed that same pipe
+  on itself, throwing away its own second half before it could print a word.
+  This has been broken since the updater first shipped, and only ever through
+  that one route, so the in-game Check Updates button and the
+  Update Insaniquarium.command file were always fine. If the one-liner is how
+  you tried to update and nothing happened, it will carry you forward now.
+
 ## 1.1.4 - 2026-08-14
 
 - The alien warning no longer repeats itself in Challenge tanks. Every few waves

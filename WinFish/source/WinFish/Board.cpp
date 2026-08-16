@@ -5226,6 +5226,7 @@ void Sexy::Board::GetExoticFoodsRequiredInTank(int* theInfoArray)
 
 void Sexy::Board::GetExoticFoodsInTank(int* theInfoArray)
 {
+	memset(theInfoArray, 0, 8 * sizeof(int));
 	for (int i = 0; i < mFishList->size(); i++)
 	{
 		Fish* anObj = mFishList->at(i);

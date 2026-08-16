@@ -617,7 +617,7 @@ void Sexy::BonusScreen::Init()
 	}
 	else if (mApp->mGameMode == GAMEMODE_CHALLENGE)
 	{
-		switch (mApp->mBoard->mTank)
+		switch (mApp->mBoard->mTank - 1)
 		{
 		case 0:
 			mBonusReward = 2000;

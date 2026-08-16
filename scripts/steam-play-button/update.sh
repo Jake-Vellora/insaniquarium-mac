@@ -26,9 +26,11 @@ LOCK="$PORTHOME/.update-lock"
 die()  { echo "error: $*" >&2; exit 1; }
 note() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
-# Prompts (if any downstream) need a real terminal; when piped from curl our
-# stdin is the pipe, so best-effort reattach the controlling tty. Never fatal.
-[ -t 0 ] || exec < /dev/tty 2>/dev/null || true
+# NOTE: never redirect this shell's own stdin (no `exec < ...`). Under the
+# documented `curl ... | bash` one-liner, bash is READING THIS SCRIPT from stdin,
+# so swapping fd 0 discards the rest of the script - the run dies silently, exit
+# 0, nothing printed. The one prompt-capable child (setup.sh, at the bottom) gets
+# the tty through a per-command redirect instead.
 
 FORCE=0 TARBALL="" YES=""
 while [ $# -gt 0 ]; do
@@ -159,4 +161,14 @@ xattr -dr com.apple.quarantine "$DISTDIR" 2>/dev/null || true
 
 # Run the NEW tarball's setup.sh (not exec: our EXIT trap must still clean up,
 # and setup.sh atomically refreshes this very update.sh in $PORTHOME).
-bash "$DISTDIR/setup.sh" --update ${YES:+$YES}
+#
+# setup.sh prompts, so it needs a terminal. Under `curl | bash` our stdin is the
+# pipe, so hand it the controlling tty - but only if there is one to hand over:
+# the in-app updater runs us detached with SETSID, where /dev/tty cannot be
+# opened at all. Without a tty setup.sh still finishes; its ask() treats the
+# resulting EOF as "no".
+if [ -z "$YES" ] && [ ! -t 0 ] && (exec 3< /dev/tty) 2>/dev/null; then
+  bash "$DISTDIR/setup.sh" --update < /dev/tty
+else
+  bash "$DISTDIR/setup.sh" --update ${YES:+$YES}
+fi
