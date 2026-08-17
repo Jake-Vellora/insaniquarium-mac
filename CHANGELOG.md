@@ -5,6 +5,20 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.1.7 - 2026-08-16
+
+- A grown-up Sylvester looks like himself again in the Virtual Tank. Once your
+  Sylvester had eaten enough to grow into the big version, he was drawn as a
+  small square cut out of his artwork, so a floating scrap of fish swam around
+  the tank instead of the whole creature. He now uses his full-size picture, and
+  the little animation that plays as he grows stays centered on him instead of
+  expanding downwards.
+- Fish names ending in "JR." read properly on the Fish Setup screen. When a
+  breeder gives you a baby, the baby inherits its parent's name with "JR." added
+  on the end, and if that name was long enough to need two lines the "JR." was
+  printed on top of the name instead of under it, jumbling the letters together.
+  The name now sits on the first line with "JR." on its own line below.
+
 ## 1.1.6 - 2026-08-16
 
 - Cookie eats again in the Virtual Tank. Cookie is one of the specially named
