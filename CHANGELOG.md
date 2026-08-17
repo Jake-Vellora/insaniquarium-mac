@@ -5,6 +5,18 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.1.6 - 2026-08-16
+
+- Cookie eats again in the Virtual Tank. Cookie is one of the specially named
+  fish the store hands out, a beetlemuncher whose quirk is that it lives on
+  ordinary fish food instead of the beetles its kind normally eat. On the Mac
+  port it went hunting for a kind of food that does not exist in any tank, so it
+  never found a meal, never swam toward the food you dropped, and sat there
+  permanently starving and miserable while every other fish in the tank fed
+  happily. It now eats the food you drop, the way it always has on Windows. A
+  Cookie that has been going hungry recovers on its own the next time you feed
+  it, however long it has been waiting, and its mood climbs back up with it.
+
 ## 1.1.5 - 2026-08-16
 
 - Prego has her babies again in the Virtual Tank. She would swim up, begin

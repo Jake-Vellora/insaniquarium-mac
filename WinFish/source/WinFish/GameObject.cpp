@@ -577,6 +577,10 @@ GameObject* Sexy::GameObject::FindNearestExoticFood(int theX, int theY)
 	if (mExoticDietFoodType > 999)
 		return FindNearestExoticFoodOther(theX, theY, mExoticDietFoodType - EXO_FOOD_OBJECTS_START);
 
+	int aFoodTypeToEat = mExoticDietFoodType;
+	if (mExoticDietFoodType == 6)
+		aFoodTypeToEat = 0;
+
 	int aDist = 100000000;
 	Food* aRet = nullptr;
 
@@ -584,7 +588,7 @@ GameObject* Sexy::GameObject::FindNearestExoticFood(int theX, int theY)
 	{
 		Food* aFood = mApp->mBoard->mFoodList->at(i);
 
-		if (aFood->mExoticFoodType == mExoticDietFoodType && !aFood->mPickedUp && aFood->mCantEatTimer == 0)
+		if (aFood->mExoticFoodType == aFoodTypeToEat && !aFood->mPickedUp && aFood->mCantEatTimer == 0)
 		{
 			int ax = aFood->mX - theX + 20;
 			int ay = aFood->mY - theY + 20;
