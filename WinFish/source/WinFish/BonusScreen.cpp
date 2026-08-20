@@ -609,7 +609,8 @@ void Sexy::BonusScreen::Init()
 	else if (mApp->mGameMode == GAMEMODE_TIME_TRIAL)
 	{
 		mBonusReward = mApp->mBoard->mMoney * 5 / 100;
-		mRewardString = StrFormat("%d%% Bonus Award", mBonusReward);
+		// The %d is the PERCENTAGE, not the reward it just computed.
+		mRewardString = StrFormat("%d%% Bonus Award", 5);
 		mCurScore1 = "Your Score";
 		mBestScore1 = "Your Best Score";
 		mCurScore2 = CommaSeperate(mApp->mBoard->mMoney);

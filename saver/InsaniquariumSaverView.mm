@@ -79,6 +79,13 @@ static GLuint gFrameTex[2] = { 0, 0 };
 static volatile int gPublishedTex = -1;
 static volatile int gSharedFrameW = 0;
 static volatile int gSharedFrameH = 0;
+// The owner's whole surface, which is NOT gSharedFrameW/H (that is the 4:3
+// presentation rect inside it). Ownership is a question about surface sizes, so
+// comparing against the letterboxed rect would let two equally sized instances
+// on a wide display each look 1.5x bigger than the other and trade ownership
+// forever.
+static volatile int gOwnerSurfaceW = 0;
+static volatile int gOwnerSurfaceH = 0;
 static volatile double gLastPublishTime = 0;
 static double gDataMTimeAtInit = 0;
 
@@ -202,7 +209,7 @@ static void SaverSwapHook()
 	double aNow = CACurrentMediaTime();
 	bool anOwnerStale = gLastPublishTime > 0 && aNow - gLastPublishTime > 0.5;
 	if (gOwnerView == nil || anOwnerStale ||
-		(aMyW * aMyH > gSharedFrameW * gSharedFrameH * 3 / 2 && gSharedFrameW > 0))
+		(aMyW * aMyH > gOwnerSurfaceW * gOwnerSurfaceH * 3 / 2 && gOwnerSurfaceW > 0))
 		gOwnerView = self.hostView;
 
 	if (self.hostView != gOwnerView)
@@ -255,13 +262,21 @@ static void SaverSwapHook()
 		gGameContext = theContext;
 	}
 
-	// Track this layer's backing size (per display / preview scaling)
+	// Track this layer's backing size (per display / preview scaling) and
+	// re-letterbox EVERY pump, not just when that size changes. NSOpenGLLayer
+	// resets the viewport to the whole layer before each drawInOpenGLContext:,
+	// so a 4:3 viewport set once at init survives exactly one frame (measured:
+	// on entry the viewport reads 0,0 3024x1964 on every callback). With the
+	// old change-guard the game therefore drew stretched across the whole
+	// surface with no black bars, while mPresentationRect kept the letterboxed
+	// rect the publish step copies out - so mirror instances showed a centre
+	// crop of a stretched tank. The mirror path below sets its own viewport
+	// too, and the owner takes that path whenever the pump lock is contended.
 	CGSize aSize = self.bounds.size;
 	CGFloat aScale = self.contentsScale;
 	int aWidth = (int)(aSize.width * aScale);
 	int aHeight = (int)(aSize.height * aScale);
-	if (aWidth > 0 && aHeight > 0 &&
-		(aWidth != Sexy::gGLHostDrawableWidth || aHeight != Sexy::gGLHostDrawableHeight))
+	if (aWidth > 0 && aHeight > 0)
 	{
 		Sexy::gGLHostDrawableWidth = aWidth;
 		Sexy::gGLHostDrawableHeight = aHeight;
@@ -308,13 +323,22 @@ static void SaverSwapHook()
 	glFlush();
 	gSharedFrameW = aCopyW;
 	gSharedFrameH = aCopyH;
+	gOwnerSurfaceW = aWidth;
+	gOwnerSurfaceH = aHeight;
 	gPublishedTex = aBack;
 	gLastPublishTime = CACurrentMediaTime();
 	[gPumpLock unlock];
 
 	static long aPumpCount = 0;
 	if ((++aPumpCount % 120) == 1)
-		SAVER_LOG(@"pump %ld flushes %ld (view %p)", aPumpCount, Sexy::gGLFlushCount, self.hostView);
+	{
+		GLint aViewport[4] = { 0, 0, 0, 0 };
+		glGetIntegerv(GL_VIEWPORT, aViewport);
+		SAVER_LOG(@"pump %ld flushes %ld (view %p) surface %dx%d viewport %d,%d %dx%d present %d,%d %dx%d",
+			aPumpCount, Sexy::gGLFlushCount, self.hostView, aWidth, aHeight,
+			(int)aViewport[0], (int)aViewport[1], (int)aViewport[2], (int)aViewport[3],
+			aCopyX, aCopyY, aCopyW, aCopyH);
+	}
 
 	[super drawInOpenGLContext:theContext pixelFormat:thePixelFormat
 		forLayerTime:theTime displayTime:theDisplayTime];
@@ -346,8 +370,10 @@ static void SaverSwapHook()
 	else
 		aScaleY = aDstAspect / aSrcAspect;
 
+	// Leave GL_BLEND alone: the copied frame is GL_RGB so its alpha reads as 1
+	// and blending is a no-op here, while turning it off would strip the alpha
+	// out of every sprite if this context later pumps the game.
 	glUseProgram(0);
-	glDisable(GL_BLEND);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	glMatrixMode(GL_MODELVIEW);

@@ -5,6 +5,29 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.1.8 - 2026-08-20
+
+- Guppy Crunchers rest on the tank floor again in the Virtual Tank. A Guppy
+  Cruncher leaps up to grab a guppy, and on the Mac port he never shed the speed
+  of the landing afterwards, so he kept sinking by that much every frame for the
+  rest of his life. An ordinary one ended up a few pixels too low, which was easy
+  to miss, but a Speedy one sank right off the bottom of the tank where you could
+  barely see him. Feeding him made it obvious: he would pop back up beside the
+  other crunchers for a moment and then drop away again. He now settles where he
+  belongs and stays there, and he still jumps for his food exactly as before.
+  Crunchers already in your tank right themselves the next time you open it.
+- The Time Trial results now say "5% Bonus Award" instead of "500% Bonus Award".
+  The shells you take home from a Time Trial are 5 percent of the coins you
+  collected, and the label was printing the number of shells you had just won in
+  place of that percentage. Only the label was wrong; the shells were always
+  correct.
+- The screensaver keeps the tank's proper shape. It was stretching the tank
+  sideways to fill the whole screen with no black bars, and the preview in System
+  Settings showed that stretched picture with the castle on the left and the
+  rocks on the right trimmed off. The tank is now drawn at its original
+  proportions, with black bars wherever the display is wider than the tank, on
+  every screen and in the preview.
+
 ## 1.1.7 - 2026-08-16
 
 - A grown-up Sylvester looks like himself again in the Virtual Tank. Once your
