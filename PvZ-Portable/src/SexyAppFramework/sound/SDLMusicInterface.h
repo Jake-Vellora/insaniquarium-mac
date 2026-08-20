@@ -83,6 +83,7 @@ public:
 	virtual bool			IsPlaying(int theSongId);
 	
 	virtual void			SetVolume(double theVolume);
+	void					ApplyGlobalVolume();
 	virtual void			SetMusicAmplify(int theSongId, double theAmp);
 	virtual void			Update();
 

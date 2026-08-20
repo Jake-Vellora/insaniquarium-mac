@@ -27,6 +27,12 @@
 
 using namespace Sexy;
 
+// The app hands us a 0..1 volume and we map it onto 0..kMaxMusicVolume rather
+// than the mixer's full 0..MIX_MAX_VOLUME range. The mixer's own default is
+// MIX_MAX_VOLUME, which is louder than anything the app can ask for, so it must
+// never be left in place once we exist.
+static const int kMaxMusicVolume = 80;
+
 SDLMusicInfo::SDLMusicInfo()
 {
 	mVolume = 0.0;
@@ -38,7 +44,11 @@ SDLMusicInfo::SDLMusicInfo()
 
 SDLMusicInterface::SDLMusicInterface()
 {
-	mGlobalVolume = MIX_MAX_VOLUME;
+	// SexyAppBase::Init constructs us after the mixer is already open and calls
+	// SetVolume immediately afterwards, but start from our own ceiling rather
+	// than the mixer's louder default so nothing can slip through in between.
+	mGlobalVolume = kMaxMusicVolume;
+	ApplyGlobalVolume();
 }
 
 SDLMusicInterface::~SDLMusicInterface()
@@ -263,7 +273,23 @@ bool SDLMusicInterface::IsPlaying(int theSongId)
 
 void SDLMusicInterface::SetVolume(double theVolume)
 {
-	mGlobalVolume = (int)(theVolume*80);
+	mGlobalVolume = (int)(theVolume * kMaxMusicVolume);
+	// Apply it here, not only on the next Update(). Music starts from the
+	// loading thread well before the next frame runs, and until Update() had
+	// run the mixer was still on its own default of MIX_MAX_VOLUME, so the
+	// first ~100 ms of the title music played at full volume no matter what the
+	// player had chosen - including when they had music turned off entirely.
+	ApplyGlobalVolume();
+}
+
+// Mix_VolumeMusic sets the volume newly loaded songs inherit and the volume of
+// the song playing right now; Mix_VolumeMusicGeneral is the master applied to
+// every stream as it is mixed. Update() writes both every frame, so write both
+// here too and the level never changes when the frame loop catches up.
+void SDLMusicInterface::ApplyGlobalVolume()
+{
+	Mix_VolumeMusic(mGlobalVolume);
+	Mix_VolumeMusicGeneral(mGlobalVolume);
 }
 
 void SDLMusicInterface::SetMusicAmplify(int theSongId, double theAmp)
@@ -273,8 +299,7 @@ void SDLMusicInterface::SetMusicAmplify(int theSongId, double theAmp)
 
 void SDLMusicInterface::Update()
 {
-	Mix_VolumeMusic(mGlobalVolume);
-	Mix_VolumeMusicGeneral(mGlobalVolume);
+	ApplyGlobalVolume();
 
 	SDLMusicMap::iterator anItr = mMusicMap.begin();
 	while (anItr != mMusicMap.end())

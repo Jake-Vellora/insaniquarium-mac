@@ -21,6 +21,14 @@ language (what changed and why they care, not commit subjects).
   collected, and the label was printing the number of shells you had just won in
   place of that percentage. Only the label was wrong; the shells were always
   correct.
+- The game no longer blares the first moment of music at full volume. Whatever
+  you had the music slider set to, the opening of the title music played at the
+  mixer's own full volume for about a tenth of a second before the game got
+  round to applying your setting, so with the Mac turned up and Insaniquarium
+  turned down you got a loud burst before it dropped to where you wanted it. If
+  you had music switched off entirely you still got the burst. Your setting is
+  now in place before the first note, and nothing about the volume you hear
+  after that has changed.
 - The screensaver keeps the tank's proper shape. It was stretching the tank
   sideways to fill the whole screen with no black bars, and the preview in System
   Settings showed that stretched picture with the castle on the left and the
