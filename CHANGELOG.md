@@ -5,6 +5,28 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.1.9 - 2026-08-22
+
+- The gold trophy and the final story stay unlocked now. Once you have seen all
+  thirty-two stories, finishing another level awards the solid gold trophy and
+  shows the thirty-third and last one. The Mac port showed you both and then
+  forgot: back at the main menu the trophy was the ordinary one again, the
+  story screen still counted thirty-two, and there was no way to reach the last
+  story, so the game could not be finished to one hundred percent. The award is
+  written into your profile the moment you receive it, so the trophy, its
+  sparkle, Meryl's line about it and the final story all stay put. If you have
+  already been shown the trophy once and lost it, finish one more level and it
+  will be granted properly this time.
+- An invisible fish's disguise lines up with the fish again. An invisible fish
+  hides by painting a slightly shifted copy of the tank background over itself,
+  and on the Mac port the outline deciding which pixels to paint sat three
+  pixels out of place whenever a fish faced the way that flips its picture. The
+  disguise was painted beside the fish rather than on it, which put a band of
+  displaced background outside its shape and left a strip of the fish itself
+  undisguised, tracing its outline against the tank. Fish facing the other way
+  were drawn correctly all along, so it came and went as they turned around.
+  The disguise now sits exactly where it belongs, in both directions.
+
 ## 1.1.8 - 2026-08-20
 
 - Guppy Crunchers rest on the tank floor again in the Virtual Tank. A Guppy

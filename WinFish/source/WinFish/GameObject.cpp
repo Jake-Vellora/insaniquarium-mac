@@ -759,7 +759,7 @@ void Sexy::GameObject::DrawInvisibleEffectHelper(Graphics* g, MemoryImage* theBG
 		}
 		else // 77
 		{
-			uint32_t* anObjBitForEffect = anObjBits - 4 + anObjBitPos + theSrcRect.mWidth;
+			uint32_t* anObjBitForEffect = anObjBits + anObjBitPos + theSrcRect.mWidth - 1;
 			int aCnt2 = theX;
 			for (int x = 0; x < anInvisImg.mWidth; ++x)
 			{
