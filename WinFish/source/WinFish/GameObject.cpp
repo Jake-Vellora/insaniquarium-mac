@@ -699,7 +699,7 @@ void Sexy::GameObject::UpdateHungerStateIfWasHungry(bool wasHungry)
 
 bool Sexy::GameObject::DrawInvisibleEffect(Graphics* g, Image* theImage, Rect& theSrcRect, bool mirror)
 {
-	if (mApp->mBoard->mCurrentBackgroundId - 1 < 6)
+	if ((unsigned) (mApp->mBoard->mCurrentBackgroundId - 1) < 6)
 	{
 		Image* anImg = GetImageById(mApp->mBoard->mCurrentBackgroundId + IMAGE_MISSILE_ID);
 		DrawInvisibleEffectHelper(g, (MemoryImage*) anImg, mX - 2, mY - 2, (MemoryImage*) theImage, theSrcRect, mirror);
@@ -736,6 +736,9 @@ void Sexy::GameObject::DrawInvisibleEffectHelper(Graphics* g, MemoryImage* theBG
 		uint32_t* anObjBits = theObjImage->GetBits();
 		uint32_t anObjBitPos = (theSrcRect.mY + y) * theObjImage->mWidth + theSrcRect.mX;
 
+		// Pixels outside the fish keep the backdrop colour at zero alpha rather than
+		// staying transparent black. The GPU filters this image whenever the window is
+		// scaled up, and blending towards black draws a dark rim around the silhouette.
 		if (!mirror) // 56
 		{
 			uint32_t* anObjBitForEffect = anObjBits + anObjBitPos;
@@ -747,10 +750,9 @@ void Sexy::GameObject::DrawInvisibleEffectHelper(Graphics* g, MemoryImage* theBG
 					uint32_t anBitAlpha = *anObjBitForEffect & 0xFF000000;
 					anObjBitForEffect++;
 					if (anBitAlpha != 0)
-					{
-						anBitAlpha = *aBGBitForEffect;
-						*anInvisBitForEffect = anBitAlpha;
-					}
+						*anInvisBitForEffect = *aBGBitForEffect;
+					else
+						*anInvisBitForEffect = *aBGBitForEffect & 0x00FFFFFF;
 					anInvisBitForEffect++;
 					aBGBitForEffect++;
 				}
@@ -768,10 +770,9 @@ void Sexy::GameObject::DrawInvisibleEffectHelper(Graphics* g, MemoryImage* theBG
 					uint32_t anBitAlpha = *anObjBitForEffect & 0xFF000000;
 					anObjBitForEffect--;
 					if (anBitAlpha != 0)
-					{
-						anBitAlpha = *aBGBitForEffect;
-						*anInvisBitForEffect = anBitAlpha;
-					}
+						*anInvisBitForEffect = *aBGBitForEffect;
+					else
+						*anInvisBitForEffect = *aBGBitForEffect & 0x00FFFFFF;
 					anInvisBitForEffect++;
 					aBGBitForEffect++;
 				}
