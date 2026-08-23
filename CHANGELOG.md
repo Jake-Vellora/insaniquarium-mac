@@ -5,6 +5,20 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.1.10 - 2026-08-23
+
+- Invisible fish no longer have a dark outline drawn around them. An invisible
+  fish hides by painting a slightly shifted copy of the tank background over
+  itself, and everywhere that copy stopped, the Mac port faded it out to black
+  instead of to the water around it. Any time the game is drawn larger than its
+  native size, which is what happens whenever you play full screen, the graphics
+  card smooths that fade across the edge, and the result was a dark line traced
+  right around the fish. The one thing in the tank meant to go unnoticed was the
+  easiest to spot, and it looked worst against something detailed like the
+  castle. The hidden part of the disguise now carries the background colour as
+  well, so there is nothing dark left to smear, and an invisible fish is back to
+  a faint ripple in the water the way it is on Windows.
+
 ## 1.1.9 - 2026-08-22
 
 - The gold trophy and the final story stay unlocked now. Once you have seen all
