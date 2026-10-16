@@ -10,6 +10,8 @@ BIN="$BUILD/insaniquarium"
 [ -f "$BIN" ] || { echo "error: $BIN not built"; exit 1; }
 [ -d "$BUILD/assets" ] || { echo "error: $BUILD/assets not staged"; exit 1; }
 
+source scripts/bundle-sdl3.sh
+
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
@@ -28,6 +30,9 @@ dylibbundler -of -cd -b \
 	-d "$APP/Contents/Frameworks" \
 	-p @executable_path/../Frameworks/ >/dev/null
 
+# SDL3 is a dlopen dependency of Homebrew's SDL2 compatibility layer.
+bundle_sdl3_runtime "$APP"
+
 # Steamworks presence (appid 3320): bundled only if the SDK dylib has been
 # dropped in packaging/ (needs a free Steamworks login to download).
 if [ -f packaging/libsteam_api.dylib ]; then
@@ -38,5 +43,6 @@ else
 fi
 
 codesign --force --deep -s - "$APP"
+codesign --verify --deep --strict "$APP"
 
 echo "packaged $APP"

@@ -134,6 +134,21 @@ and `PvZ-Portable/` as separate gitignored clones; on such a checkout run
 `rm -rf WinFish PvZ-Portable`, then `git pull` and
 `git checkout -- WinFish PvZ-Portable` to switch to the vendored layout.
 
+## SDL runtime packaging
+
+Both packaging scripts inspect the SDL2 library inside their bundle. Classic
+SDL2 needs no additional runtime. If the bundled library identifies itself as
+`sdl2-compat`, the scripts explicitly include SDL3: that dependency is loaded
+with `dlopen`, so it is invisible to the normal dylibbundler dependency walk.
+`libSDL3.dylib` is copied beside SDL2, its non-system dependencies are bundled,
+and the library and completed bundle are signed and verified. Repackaging a
+previously packaged screensaver refreshes SDL3 as well.
+
+The default runtime comes from `brew --prefix sdl3`. For a custom SDL build,
+set `SDL3_DYLIB` to the full path of a matching SDL3 dylib when packaging or
+running `setup.sh`. The runtime must support every architecture of the bundled
+SDL2. If it is missing or incompatible, packaging fails before installation.
+
 ## Repository layout
 
 - `CMakeLists.txt`: builds the game, the screensaver, and dev tools

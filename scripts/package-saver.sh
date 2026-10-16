@@ -10,6 +10,8 @@ SAVER="$BUILD/Insaniquarium.saver"
 [ -d "$SAVER" ] || { echo "error: $SAVER not built"; exit 1; }
 [ -d "$BUILD/assets" ] || { echo "error: $BUILD/assets not staged"; exit 1; }
 
+source scripts/bundle-sdl3.sh
+
 mkdir -p "$SAVER/Contents/Resources"
 for d in images sounds music fishsongs data properties; do
 	rm -rf "$SAVER/Contents/Resources/$d"
@@ -33,7 +35,12 @@ if otool -L "$SAVER/Contents/MacOS/Insaniquarium" | grep -q /opt/homebrew; then
 	echo "error: saver still links /opt/homebrew dylibs after dylibbundler"; exit 1
 fi
 
+# Always refresh the dlopen dependency, even when the saver was already bundled
+# and no longer has /opt/homebrew load commands to trigger dylibbundler above.
+bundle_sdl3_runtime "$SAVER"
+
 codesign --force --deep -s - "$SAVER"
+codesign --verify --deep --strict "$SAVER"
 echo "packaged $SAVER"
 
 if [ "${1:-}" = "--install" ]; then
