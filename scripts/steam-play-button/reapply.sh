@@ -20,8 +20,13 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 STEAM="$HOME/Library/Application Support/Steam"
 APPINFO="$STEAM/appcache/appinfo.vdf"
 INSTALLDIR="Insaniquarium Deluxe"
+source "$DIR/app-launch.sh"
 
 [ -f "$APPINFO" ] || exit 0
+
+# Repair the bundle link before publishing metadata that refers to it. This
+# also repairs a dangling link during an app update, without following it.
+ensure_app_launch_link
 
 TMP="$APPINFO.reapply.$$"
 trap 'rm -f "$TMP"' EXIT
@@ -34,12 +39,6 @@ if ! cmp -s "$TMP" "$APPINFO"; then
   trap - EXIT
   echo "$(date '+%F %T') re-injected appinfo (steam $(pgrep -x steam_osx >/dev/null && echo running || echo quit))"
 fi
-
-# The launch symlink is safe to ensure at any time.
-mkdir -p "$STEAM/steamapps/common/$INSTALLDIR"
-[ -e "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium" ] || \
-  ln -sf /Applications/Insaniquarium.app/Contents/MacOS/insaniquarium \
-         "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium"
 
 # Manifest/run.sh (acf writes) only while Steam is closed.
 if ! pgrep -x steam_osx >/dev/null; then

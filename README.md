@@ -73,7 +73,12 @@ always safe to rerun.
 2. **The Play button**: Steam's macOS client can't launch Windows-only games,
    so `setup.sh` edits Steam's local `appinfo.vdf` cache (checksummed v29
    format) to mark appid 3320 as having a native macOS build with a launch
-   entry pointing at the built app. Steam then treats it like any native game:
+   entry pointing at an `Insaniquarium.app` symlink in the Steam install
+   directory. Steam launches the app bundle rather than the bare executable,
+   allowing macOS to use the app's Full Disk Access grant for screensaver save
+   sharing. This avoids a Steam-only FDA warning observed with the old binary
+   launch path; the app-bundle launch and Shift+Tab overlay were tested on
+   Apple Silicon. Steam then treats it like any native game:
    Install button, Play button, overlay, playtime. A LaunchAgent re-applies
    the edit whenever Steam's metadata sync reverts it.
 3. **The assets**: because the game "has a Mac build" as far as Steam is

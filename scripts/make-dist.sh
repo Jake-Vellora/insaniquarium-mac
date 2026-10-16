@@ -40,7 +40,7 @@ for b in Insaniquarium.app Insaniquarium.saver; do
 done
 
 # 3. Scripts (exactly what setup.sh needs; sme ships only appinfo.py + notice)
-for f in edit_appinfo.py inject.sh reapply.sh install-durability.sh update.sh in-app-update.sh \
+for f in app-launch.sh edit_appinfo.py inject.sh reapply.sh install-durability.sh update.sh in-app-update.sh \
          com.jake.insaniquarium.steampatch.plist run.sh uninstall.sh; do
 	cp "scripts/steam-play-button/$f" "$DIST/scripts/"
 done

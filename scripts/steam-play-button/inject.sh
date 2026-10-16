@@ -24,6 +24,7 @@ APPINFO="$STEAM/appcache/appinfo.vdf"
 GID="4977529675831131285"       # depot 3321 public manifest (up-to-date => no download)
 BUILDID="250752"
 INSTALLDIR="Insaniquarium Deluxe"
+source ./app-launch.sh
 
 PHASE=all
 OWNER=""
@@ -110,11 +111,8 @@ EOF
 }
 
 do_finalize() {
-  # Direct-exec symlink to the app binary (preserves the Steam overlay's DYLD
-  # injection, which a shell wrapper would strip). run.sh kept as a fallback.
-  mkdir -p "$STEAM/steamapps/common/$INSTALLDIR"
-  ln -sf /Applications/Insaniquarium.app/Contents/MacOS/insaniquarium \
-         "$STEAM/steamapps/common/$INSTALLDIR/insaniquarium"
+  # Let Steam launch the .app bundle. run.sh remains an optional fallback.
+  ensure_app_launch_link
   cp run.sh "$STEAM/steamapps/common/$INSTALLDIR/run.sh"
   chmod +x "$STEAM/steamapps/common/$INSTALLDIR/run.sh"
   echo "installed launch symlink + run.sh fallback into steamapps/common/$INSTALLDIR"

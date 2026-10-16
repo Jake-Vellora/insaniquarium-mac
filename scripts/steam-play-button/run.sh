@@ -1,5 +1,6 @@
 #!/bin/sh
-# Steam launch wrapper for the real appid-3320 macOS launch entry.
+# Optional Steam launch wrapper; the default appid-3320 entry launches the
+# Insaniquarium.app bundle directly.
 # Steam resolves this executable relative to the install dir
 # (steamapps/common/Insaniquarium Deluxe/). It hands off to the native app
 # and blocks (open -W) so Steam sees the game as running for the whole session.

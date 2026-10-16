@@ -32,15 +32,13 @@ def show(path):
     print("launch:", ai["config"].get("launch"))
 
 
-# Point Steam directly at the game binary (a symlink in the install dir ->
-# the app's Mach-O). A direct exec preserves Steam's injected
-# DYLD_INSERT_LIBRARIES so the in-game overlay (Shift+Tab) works, which a
-# shell wrapper (#!/bin/sh is SIP-restricted) and `open` both strip.
-# Confirmed safe: SDL_GetBasePath resolves the bundle Resources via CFBundle,
-# @executable_path/../Frameworks rpath resolves from the real path, and there
-# is no single-instance lock (HandleGameAlreadyRunning is never called).
+# Steam supports launching .app bundles directly. Use a bundle symlink in the
+# install dir so macOS can associate protected-file access with the app whose
+# Full Disk Access grant the user enabled. Direct execution of the bare binary
+# can warn about FDA even when opening the same app normally succeeds.
+# This keeps Steam's native app launch path, without an `open` shell wrapper.
 WANT_LAUNCH = {
-    "executable": "insaniquarium",
+    "executable": "Insaniquarium.app",
     "type": "default",
     "description": "Native macOS",
     "config": {"oslist": "macos"},
