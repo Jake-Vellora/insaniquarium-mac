@@ -14,8 +14,10 @@ ensure_app_launch_link() {
 		echo "error: $link exists and is not a symlink; left untouched" >&2
 		return 1
 	fi
-	# Another installer/agent invocation may have created the same link.
-	ln -s "$target" "$link" || {
+	# Another installer/agent invocation may have created the same link. -n stops
+	# ln following that link and writing a stray link inside the app; it fails
+	# instead, which lands in the check below.
+	ln -sn "$target" "$link" || {
 		[ -L "$link" ] && [ "$(readlink "$link")" = "$target" ]
 	}
 }
