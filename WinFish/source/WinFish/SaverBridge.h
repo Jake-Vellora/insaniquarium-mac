@@ -13,15 +13,19 @@ namespace Sexy
 	// tank; copying in both directions is how we get that back here.
 
 	// Copies the game's userdata/ and registry.regemu into the screensaver's
-	// container, preserving modification times so ImportSaverTank can tell the
-	// screensaver's own writes apart from ours, and removing container files the
-	// game no longer has (never scr<N>.dat - those are unspent earnings).
-	// Returns false if anything could not be written; theThrottle skips the work
-	// when the last push was moments ago, for the per-save call sites.
+	// container, preserving modification times, and removing container files the
+	// game no longer has (never scr<N>.dat - those are unspent earnings). Ends by
+	// stamping .lastpush, which is how ImportSaverTank tells the screensaver's
+	// own writes apart from ours. Returns false if anything could not be written;
+	// theThrottle skips the work when the last push was moments ago, for the
+	// per-save call sites.
 	bool	PushSavesToSaverContainer(const std::string& theSaveDir, bool theThrottle = false);
 
-	// Brings the screensaver's tank (userdata/sim<N>.dat) back, but only when its
-	// copy is newer than ours, so a screensaver session continues in the game.
+	// Brings the screensaver's tank (userdata/sim<N>.dat) back, but only when the
+	// screensaver wrote it after our last push, so a screensaver session continues
+	// in the game. It deliberately does NOT compare the two tanks against each
+	// other: a save the player copied in from another machine arrives with an old
+	// modification time and that test would discard it.
 	// Deliberately limited to the tank: user<N>.dat holds progress and unlocks,
 	// and shells have their own nonce-validated path below.
 	void	ImportSaverTank(const std::string& theSaveDir);

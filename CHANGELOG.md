@@ -5,6 +5,46 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.1.11 - 2026-11-07
+
+- Playing from Steam no longer brings up an "access data from other apps" prompt
+  or the Screensaver warning. Steam was starting the game in a way that made
+  macOS check Steam's permissions instead of the game's, so the Full Disk Access
+  you had given the game never counted. It now starts the app the way it starts
+  other Mac games, and the Steam overlay still works. If Steam is open when you
+  update, quit and reopen it once so it picks this up.
+- The instructions for restoring Full Disk Access after an update now work. On
+  current macOS, switching Insaniquarium off and on in System Settings does not
+  refresh the old permission, so the game and the updater now tell you to remove
+  it from the list and add it back.
+- Holding the mouse button to feed Gus no longer costs money. Food is meant to be
+  free while Gus is in the tank, and clicking already was, but holding the button
+  charged $5 per attempt, even when the tank was full and no pellet dropped. This
+  bug is in the original game too, so this is a deliberate change from it.
+- The game no longer writes a small file inside its own app. It made `setup.sh
+  verify` report a bad signature even though nothing was wrong.
+- A Virtual Tank brought over from a Windows copy of the game now survives.
+  Copying your save files across from Windows carried everything else over
+  correctly, but your tank came up empty and the background you had chosen was
+  forgotten, because the game quietly replaced the tank file you had just put
+  there with the one it kept for the screensaver. The game and the screensaver
+  each keep their own copy of your tank and swap them at startup, and the game
+  decided which copy was fresher by comparing their dates. A save carried over
+  from another computer keeps its original date, which can be years old, so it
+  always looked like the stale one and was thrown away. Deleting the Mac save
+  and copying it again did not help, because the screensaver's copy is kept
+  somewhere else and survived. The game now works out whether the screensaver
+  actually played instead of comparing dates, so a tank copied in from anywhere,
+  of any age, is left alone. Screensaver sessions still carry back into the game
+  as before, with one exception: a session that ran since you last played will
+  not carry over the first time you start this version, though any shells it
+  earned still will. If you have been trying to move a tank across, copy your
+  save files in once more after updating and they will stick. Note that the
+  Virtual Tank lives in sim1.dat, not user1.dat, so that is the file your fish
+  are in.
+
+Thanks to paleophyte and Inquisitor-201 for the Steam and Gus fixes.
+
 ## 1.1.10 - 2026-08-23
 
 - Invisible fish no longer have a dark outline drawn around them. An invisible

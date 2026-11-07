@@ -41,6 +41,18 @@ static bool IsEarningsFile(const std::string& theName)
 		fs::path(theName).extension() == ".dat";
 }
 
+// Records that we have just pushed. The file is empty - its own modification
+// time is the whole point, and rewriting it is what sets that time to now. It
+// lives beside userdata/ rather than in it so the prune loop leaves it alone.
+static bool StampPush(const fs::path& theContainer)
+{
+	FILE* aFile = fopen((theContainer / ".lastpush").c_str(), "wb");
+	if (aFile == nullptr)
+		return false;
+	fclose(aFile);
+	return true;
+}
+
 bool Sexy::PushSavesToSaverContainer(const std::string& theSaveDir, bool theThrottle)
 {
 	// The per-save call sites fire on every level change; the payload is a
@@ -116,18 +128,36 @@ bool Sexy::PushSavesToSaverContainer(const std::string& theSaveDir, bool theThro
 		anAllCopied = false;
 	}
 
+	// Stamped last, so the stamp is never older than anything it vouches for.
+	if (!StampPush(aDest))
+	{
+		if (!gPushFailed && anAllCopied)
+			fprintf(stderr, "saver bridge: cannot write .lastpush to the "
+				"screensaver's folder\n");
+		anAllCopied = false;
+	}
+
 	gPushFailed = !anAllCopied;
 	return anAllCopied;
 }
 
 void Sexy::ImportSaverTank(const std::string& theSaveDir)
 {
-	fs::path aSrcDir = SaverContainerSaveDir();
-	if (aSrcDir.empty())
+	fs::path aContainer = SaverContainerSaveDir();
+	if (aContainer.empty())
 		return;
-	aSrcDir /= "userdata";
 
 	std::error_code anErr;
+	// With no record of our own last push we cannot tell the screensaver's tank
+	// from an echo of ours, so leave the game's alone. That is the first launch
+	// after this shipped: at worst one screensaver session does not carry over,
+	// where guessing the other way can eat a tank years in the making.
+	fs::file_time_type aPushTime =
+		fs::last_write_time(aContainer / ".lastpush", anErr);
+	if (anErr)
+		return;
+
+	fs::path aSrcDir = aContainer / "userdata";
 	if (!fs::is_directory(aSrcDir, anErr))
 		return;
 
@@ -139,14 +169,18 @@ void Sexy::ImportSaverTank(const std::string& theSaveDir)
 		if (aName.compare(0, 3, "sim") != 0 ||
 			anEntry.path().extension() != ".dat")
 			continue;
-		fs::path aDest = aDestDir / aName;
-		// Our own pushes carry the game's timestamp, so a strictly newer
-		// container copy is one the screensaver wrote while we were away.
-		if (fs::exists(aDest, anErr) &&
-			fs::last_write_time(aDest, anErr) >=
-				fs::last_write_time(anEntry.path(), anErr))
+		// Everything we push keeps the game file's own timestamp, which is
+		// necessarily older than the push that copied it - so an entry no newer
+		// than the stamp is one of our echoes, whatever date it happens to
+		// carry. Comparing the two tanks instead would read a save the player
+		// brought from another machine (Finder, a USB stick and cp -p all keep
+		// its original, old, modification time) as the stale one and overwrite
+		// it. Only the screensaver writes here, at wall-clock time, while we
+		// are away.
+		fs::file_time_type aTime = fs::last_write_time(anEntry.path(), anErr);
+		if (anErr || aTime <= aPushTime)
 			continue;
-		CopyFileKeepingTime(anEntry.path(), aDest);
+		CopyFileKeepingTime(anEntry.path(), aDestDir / aName);
 	}
 }
 
