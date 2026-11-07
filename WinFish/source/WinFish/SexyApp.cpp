@@ -19,6 +19,17 @@ const char* BUILD_INFO_MARKER		= DYNAMIC_DATA_BLOCK + 80;
 const char* SIGNATURE_CODE_MARKER	= DYNAMIC_DATA_BLOCK + 80*2;
 const char* BETA_ID_MARKER			= DYNAMIC_DATA_BLOCK + 80*3;
 
+// The original keeps popcinfo.dat in the Windows directory. With that prefix gone,
+// the bare name resolved against the working directory, which main() sets to the
+// resource folder. On a normal launch that is inside the signed app bundle, where
+// writing the file breaks the bundle's seal. On a direct-exec Steam launch it is
+// Steam's install folder, so each launch path kept its own copy to disagree with
+// the registry. Keep it beside registry.regemu, the values it is checked against.
+static std::string GetPopcInfoPath()
+{
+	return GetAppDataPath("popcinfo.dat");
+}
+
 SexyApp::SexyApp()
 {
 	gSexyApp = this;
@@ -125,14 +136,8 @@ void SexyApp::ReadFromRegistry()
 		mTimesPlayed = 0;
 		mTimesExecuted = 0;
 
-		char aFileName[256] = {};
-        // !PORT
-		//GetWindowsDirectory(aFileName, 256);
-		//if (aFileName[strlen(aFileName)-1] != '\\')
-		//	strcat(aFileName, "\\");
-		strcat(aFileName, "popcinfo.dat");
-
-		FILE* fp = fopen(aFileName, "rb");
+		// !PORT
+		FILE* fp = fopen(GetPopcInfoPath().c_str(), "rb");
 		if (fp != NULL)
 		{
 			for (;;)
@@ -242,14 +247,10 @@ void SexyApp::WriteToRegistry()
 
 	if (!mPlayingDemoBuffer)
 	{
-		char aFileName[256] = {};
-        // !PORT
-		//GetWindowsDirectory(aFileName, 256);
-		//if (aFileName[strlen(aFileName)-1] != '\\')
-		//	strcat(aFileName, "\\");
-		strcat(aFileName, "popcinfo.dat");
+		// !PORT
+		const std::string aFileName = GetPopcInfoPath();
 
-		FILE* fp = fopen(aFileName, "r+b");
+		FILE* fp = fopen(aFileName.c_str(), "r+b");
 		if (fp != NULL)
 		{
 			for (;;)
@@ -275,7 +276,7 @@ void SexyApp::WriteToRegistry()
 			}
 		}
 		else
-			fp = fopen(aFileName, "wb");
+			fp = fopen(aFileName.c_str(), "wb");
 			
 		if (fp != NULL)
 		{
