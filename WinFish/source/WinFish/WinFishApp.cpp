@@ -2299,16 +2299,18 @@ void Sexy::WinFishApp::TitleScreenIsFinished()
 	// The screensaver reads the tank from its own sandboxed folder, and only
 	// this app can put it there. Installing an update re-signs the app, which
 	// clears its Full Disk Access, and the copy then fails silently - which
-	// looks exactly like a screensaver that stopped updating.
+	// looks exactly like a screensaver that stopped updating. Switching the
+	// existing row off and on does not help: the row keeps the old signature,
+	// so macOS goes on refusing until it is removed and added again.
 	if (SaverBridgePushFailed())
 	{
 		DoDialog(DIALOG_SAVER_ACCESS, true, "Screensaver",
-			"The screensaver can't see your tank, so it keeps showing an old one.\n"
-			"Insaniquarium needs Full Disk Access to hand the tank over, and\n"
+			"The screensaver can't see your tank, so it keeps showing an old one. "
+			"Insaniquarium needs Full Disk Access to hand the tank over, and "
 			"installing an update clears that permission.\n\n"
-			"In Privacy & Security > Full Disk Access, switch Insaniquarium off\n"
-			"and back on, or add /Applications/Insaniquarium.app if it isn't\n"
-			"listed. Open those settings now?",
+			"In Privacy & Security > Full Disk Access, select Insaniquarium if it's "
+			"listed and click the minus button, then click plus and add "
+			"/Applications/Insaniquarium.app. Open those settings now?",
 			"", Dialog::BUTTONS_YES_NO);
 	}
 }

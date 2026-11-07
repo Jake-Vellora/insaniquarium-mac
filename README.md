@@ -116,7 +116,8 @@ All methods preserve saves, Steam wiring, and screensaver selection.
   (or double-click `Update Insaniquarium.command`). It downloads the latest
   release, re-grafts your existing game assets onto the new build, and swaps it
   in with a rollback safety net. It asks for **Full Disk Access** again because
-  the app's signature changed.
+  the app's signature changed: remove the app from that list and add it back,
+  since switching it off and on does not refresh the old grant.
 - **Verify a download:** every release ships a `.sha256` sidecar, and
   `update.sh` checks it automatically before installing anything. To check a
   manually downloaded tarball yourself, put both files in one folder and run
