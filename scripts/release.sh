@@ -66,7 +66,7 @@ trap 'rm -f "$NOTES"' EXIT
   echo '```'
   echo
   echo "Your saves, Steam Play button, and screensaver selection are preserved."
-  echo "After updating, re-grant Full Disk Access if prompted (the app's signature changed)."
+  echo "After updating, if prompted, remove Insaniquarium from Full Disk Access and add it back. The app's signature changed, and switching it off and on does not refresh the old grant."
   echo
   echo "### Verify your download"
   echo

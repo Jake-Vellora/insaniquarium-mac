@@ -259,7 +259,8 @@ manual_tail() {
 1) FULL DISK ACCESS - stops a recurring "access data from other apps" prompt
    (the game and the screensaver share your tank through a sandboxed folder):
    System Settings will open on Privacy & Security > Full Disk Access.
-   Click "+", press Cmd+Shift+G, type "/Applications/Insaniquarium.app",
+   If Insaniquarium is already listed, select it and click "-" first.
+   Then click "+", press Cmd+Shift+G, type "/Applications/Insaniquarium.app",
    add it, and make sure its toggle is ON.
 MSG
   if ask "Open Full Disk Access settings now?"; then
@@ -331,10 +332,12 @@ update_fda_tail() {
 
 Note: updating the app changes its code signature, which clears its Full Disk
 Access grant. Until you re-grant it, the game shows an "access data from other
-apps" prompt on launch (clicking Allow works each time). To silence it for good:
+apps" prompt on launch (clicking Allow works each time). To silence it until the
+next update:
   System Settings > Privacy & Security > Full Disk Access - if Insaniquarium is
-  already listed, toggle it off then on; otherwise click "+", add
-  /Applications/Insaniquarium.app, and switch it on.
+  already listed, select it and click "-" (switching it off and on does not
+  refresh the old grant). Then click "+", press Cmd+Shift+G, type
+  /Applications/Insaniquarium.app, add it, and make sure its toggle is ON.
 MSG
   # Never pop System Settings during an unattended in-app update relaunch.
   if [ "${NONINTERACTIVE:-0}" != 1 ] && ask "Open Full Disk Access settings now?"; then

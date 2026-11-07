@@ -66,8 +66,10 @@ tanks, the Steam Play-button wiring, and your screensaver selection. The one
 thing it asks again: **Full Disk Access**, because updating changes the app's
 signature, so macOS drops the grant. Until you re-grant it the game shows an
 "access data from other apps" prompt on launch (clicking Allow works); to
-silence it, re-add or toggle the app in System Settings > Privacy & Security >
-Full Disk Access. Run `bash setup.sh verify` afterward to confirm.
+silence it, go to System Settings > Privacy & Security > Full Disk Access, remove
+the app with the minus button, and add it back with the plus button. Switching
+it off and on does not refresh the old grant. Run `bash setup.sh verify` afterward
+to confirm.
 
 ## If something goes wrong
 
