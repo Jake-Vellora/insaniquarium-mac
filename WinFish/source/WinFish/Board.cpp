@@ -813,9 +813,12 @@ void Board::Update()
 		int aVal = Unk01();
 		int aLastMouseX = mWidgetManager->mLastMouseX;
 		int aLastMouseY = mWidgetManager->mLastMouseY;
-		// Original mechanic: dropping food is free while Gus is in the tank
-		// (ref: Insaniquarium wiki, Gus page). The single-click Gus path never
-		// charged; the hold-to-feed path was missing this.
+		// Food is free while Gus is in the tank: clicking never charges, and DropFood
+		// gives no full-tank refund while aliens are present. This hold path is the
+		// exception, and that is a bug in the original game, not a transcription error:
+		// the original calls Buy here with no Gus check (VA 0x547dd7), so holding the
+		// button costs money even when the tank is full and no pellet drops. Fixed on
+		// purpose, so this deliberately differs from the original.
 		bool aGusInTank = false;
 		for (size_t gi = 0; gi < mAlienList->size(); gi++)
 			if (mAlienList->at(gi)->mAlienType == ALIEN_GUS) { aGusInTank = true; break; }
