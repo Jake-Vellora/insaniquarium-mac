@@ -33,6 +33,12 @@ case "$cmd" in
     if [ "$1" = -archs ]; then
       echo arm64
     else
+      # Real lipo reads everything after -verify_arch as an architecture name,
+      # so the input file has to come first.
+      if [ "$#" -ne 3 ] || [ "$2" != -verify_arch ]; then
+        echo "lipo: bad arguments: $*" >&2
+        exit 1
+      fi
       [ "${TEST_BAD_ARCH:-0}" != 1 ] || exit 1
     fi ;;
   dylibbundler)

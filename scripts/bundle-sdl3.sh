@@ -39,7 +39,7 @@ bundle_sdl3_runtime() {
 		resolve_sdl3_runtime || return 1
 		archs="$(lipo -archs "$library")" || return 1
 		for arch in $archs; do
-			lipo -verify_arch "$arch" "$SDL3_RUNTIME_DYLIB" || return 1
+			lipo "$SDL3_RUNTIME_DYLIB" -verify_arch "$arch" || return 1
 		done
 		runtime_dir="$(dirname "$library")"
 		runtime="$runtime_dir/libSDL3.dylib"
