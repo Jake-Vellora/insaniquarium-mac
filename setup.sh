@@ -323,7 +323,10 @@ update_verify() {
   # never fail. 'bash setup.sh verify' in Terminal is the authoritative check.
   launchctl list 2>/dev/null | grep -q insaniquarium.steampatch \
     || echo "note: durability agent not detected from here - confirm with 'bash setup.sh verify' in Terminal"
-  python3 "$editpy" show "$APPINFO" 2>/dev/null | grep -Fq "'executable': 'Insaniquarium.app'" \
+  # The agent was only just reloaded and switches the launch entry in the
+  # background, so either entry can be on disk here, and Play works with both.
+  # Check only that Steam is wired up at all.
+  python3 "$editpy" show "$APPINFO" 2>/dev/null | grep -q macos \
     || echo "note: Steam Play-button wiring looks incomplete - run the full ./setup.sh if Play doesn't launch the app"
 }
 
