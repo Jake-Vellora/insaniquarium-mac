@@ -185,6 +185,42 @@ class SteamLauncherTests(unittest.TestCase):
         self.assertEqual((installed / "app-launch.sh").read_text(),
                          (self.scripts / "app-launch.sh").read_text())
 
+    def update_verify_output(self):
+        app = self.base / "installed/Insaniquarium.app"
+        saver = self.base / "installed/Insaniquarium.saver"
+        for bundle in (app, saver):
+            resources = bundle / "Contents/Resources"
+            for name in ("images", "sounds", "music", "fishsongs", "data", "properties"):
+                (resources / name).mkdir(parents=True, exist_ok=True)
+            (resources / "properties/resources.xml").write_text("fixture")
+        binary = app / "Contents/MacOS/insaniquarium"
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        binary.write_text("fixture")
+        binary.chmod(0o755)
+        for name in ("codesign", "launchctl"):
+            mock = self.mockbin / name
+            mock.write_text('#!/bin/bash\nexit 0\n')
+            mock.chmod(0o755)
+        setup = (ROOT / "setup.sh").read_text()
+        definitions = setup.split('\nCMD=install ASSETS=""', 1)[0]
+        (self.repo / "verify-fixture.sh").write_text(
+            definitions + f'\nAPP="{shell_path(app)}"\nSAVER="{shell_path(saver)}"\nupdate_verify\n')
+        result = self.run_shell('bash verify-fixture.sh')
+        self.assert_ok(result)
+        return result.stdout
+
+    def test_update_verify_is_quiet_before_the_agent_migrates_the_entry(self):
+        # The update reloads the agent and verifies straight away, so the old
+        # entry can still be on disk here, and Play works with it.
+        self.assertNotIn("wiring looks incomplete", self.update_verify_output())
+
+    def test_update_verify_warns_when_steam_was_never_wired(self):
+        self.appinfo.write_text(json.dumps({
+            "common": {"oslist": "windows"},
+            "config": {"launch": {"0": {"executable": "Insaniquarium.exe"}}},
+        }))
+        self.assertIn("wiring looks incomplete", self.update_verify_output())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
