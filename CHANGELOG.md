@@ -5,6 +5,25 @@ the `## <version>` section matching the tag it is about to cut, and refuses to
 release without one - write the entry here first, in plain user-facing
 language (what changed and why they care, not commit subjects).
 
+## 1.2.0 - 2026-11-10
+
+- Insaniquarium now runs natively on Intel Macs as well as Apple Silicon, on
+  macOS 12 Monterey or later (the same versions the Steam client supports). It is
+  one app for both, so everyone downloads the same thing, and the download is a
+  little bigger because of it (about 17 MB instead of 9 MB). The Intel version
+  has been tested on Apple Silicon through Rosetta, but not yet on a real Intel
+  Mac, so reports from Intel owners are very welcome. Earlier versions were built
+  for the newest macOS only.
+- Installing is now one command. Paste it into Terminal and it downloads the
+  game, checks the download, and walks you through the rest. The command is at
+  the top of the project page.
+- Updates keep working after the project moved to a new GitHub address. Copies
+  from before the move are updated once through the old address, and from then
+  on the game and the updater find the project in a way a future move cannot
+  break.
+- Setup now sends you to the right place for the screensaver on each version of
+  macOS. On macOS 26 it is under Wallpaper, behind the Screen Saver button.
+
 ## 1.1.11 - 2026-11-07
 
 - Playing from Steam no longer brings up an "access data from other apps" prompt
