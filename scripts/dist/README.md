@@ -1,6 +1,6 @@
 # Insaniquarium! Deluxe: native Mac setup
 
-This gets Insaniquarium running **natively on your Apple Silicon Mac**,
+This gets Insaniquarium running **natively on your Mac** (Apple Silicon or Intel),
 launched from the **real Steam Play button**, with the Steam overlay
 (Shift+Tab) and a **macOS screensaver** that shows your actual virtual tank.
 
@@ -10,7 +10,7 @@ do it automatically.
 
 ## What you need
 
-- An Apple Silicon Mac (M1 or newer)
+- A Mac running macOS 12 Monterey or later, Apple Silicon or Intel
 - Steam installed and signed in, with **Insaniquarium! Deluxe** visible in
   your Library (family-shared is fine; enable the shared-games filter)
 - About 10 minutes

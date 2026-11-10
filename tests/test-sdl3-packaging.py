@@ -80,7 +80,7 @@ class PackagingTests(unittest.TestCase):
         self.base = Path(self.temp.name)
         self.repo = self.base / "checkout with spaces"
         (self.repo / "scripts").mkdir(parents=True)
-        for name in ("package.sh", "package-saver.sh", "bundle-sdl3.sh"):
+        for name in ("package.sh", "package-saver.sh", "bundle-sdl3.sh", "macho-checks.sh"):
             shutil.copyfile(ROOT / "scripts" / name, self.repo / "scripts" / name)
         (self.repo / "packaging").mkdir()
         (self.repo / "packaging/Info.plist").write_text("fixture")

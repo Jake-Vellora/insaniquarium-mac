@@ -59,6 +59,12 @@ trap 'rm -f "$NOTES"' EXIT
 {
   echo "## Insaniquarium Mac port - $TAG"
   echo
+  echo "**New here? Paste this into Terminal to install** (Apple Silicon or Intel, macOS 12 or later):"
+  echo
+  echo '```'
+  echo "curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/install.sh | bash"
+  echo '```'
+  echo
   echo "Update an existing install with one command (quit the game first; Steam can stay open):"
   echo
   echo '```'
@@ -81,6 +87,13 @@ trap 'rm -f "$NOTES"' EXIT
 } > "$NOTES"
 
 # --- Tag + publish -----------------------------------------------------------
+# One script serves first installs and updates (it checks whether the app is
+# installed). Publish it under both names: install.sh is the README's command,
+# update.sh is what every installed copy and older instructions fetch.
+INSTALLER_DIR="$(mktemp -d "${TMPDIR:-/tmp}/insaniq-installer.XXXXXX")"
+trap 'rm -f "$NOTES"; rm -rf "$INSTALLER_DIR"' EXIT
+cp scripts/steam-play-button/update.sh "$INSTALLER_DIR/install.sh"
+
 git tag -a "$TAG" -m "insaniquarium-mac $TAG"
 git push origin "$TAG"
 
@@ -88,11 +101,14 @@ gh release create "$TAG" \
   "$TARBALL" \
   "$TARBALL.sha256" \
   "scripts/steam-play-button/update.sh" \
+  "$INSTALLER_DIR/install.sh" \
   --repo Jake-Vellora/insaniquarium-mac \
   --title "Insaniquarium Mac $TAG" \
   --notes-file "$NOTES"
 
 echo
 echo "released $TAG"
+echo "new users install with:"
+echo "  curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/install.sh | bash"
 echo "users update with:"
 echo "  curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash"

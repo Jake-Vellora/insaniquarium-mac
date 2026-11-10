@@ -1,5 +1,28 @@
 cmake_minimum_required(VERSION 3.16...4.0)
 
+# Release builds are universal (Apple Silicon and Intel) and run on macOS 12
+# and later, the Steam client's own minimum. They link the pinned libraries
+# that scripts/build-deps.sh builds, because Homebrew's are arm64-only and are
+# built for the newest macOS. Without INSANIQ_DEPS_DIR this stays a Homebrew
+# build for this Mac's CPU and macOS, as before.
+set(INSANIQ_DEPS_DIR "" CACHE PATH "Universal library prefix made by scripts/build-deps.sh")
+if(INSANIQ_DEPS_DIR)
+	if(NOT EXISTS "${INSANIQ_DEPS_DIR}/DEPS-VERSIONS.txt")
+		message(FATAL_ERROR "INSANIQ_DEPS_DIR '${INSANIQ_DEPS_DIR}' is not a finished "
+			"scripts/build-deps.sh prefix (no DEPS-VERSIONS.txt). Run scripts/build-deps.sh first.")
+	endif()
+	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "" FORCE)
+	list(PREPEND CMAKE_PREFIX_PATH "${INSANIQ_DEPS_DIR}")
+	# Never let a package manager's copy of a library into a universal build.
+	set(CMAKE_IGNORE_PREFIX_PATH "/opt/homebrew;/usr/local;/opt/local")
+elseif(CMAKE_OSX_ARCHITECTURES STREQUAL "arm64;x86_64" AND CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "12.0")
+	# This build folder was universal before: drop the settings forced above.
+	# Cached library paths survive this; `cmake --fresh` switches completely.
+	set(CMAKE_OSX_ARCHITECTURES "" CACHE STRING "" FORCE)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "" CACHE STRING "" FORCE)
+endif()
+
 project(insaniquarium LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

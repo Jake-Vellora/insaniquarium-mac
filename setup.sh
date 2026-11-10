@@ -1,5 +1,6 @@
 #!/bin/bash
-# One-step installer for the native Apple Silicon port of Insaniquarium! Deluxe.
+# One-step installer for the native Mac port of Insaniquarium! Deluxe
+# (Apple Silicon and Intel, macOS 12 or later).
 #
 # Two modes, auto-detected:
 #   payload mode  dist tarball with prebuilt asset-free app/saver in payload/
@@ -23,7 +24,8 @@ STEAM="$HOME/Library/Application Support/Steam"
 APPINFO="$STEAM/appcache/appinfo.vdf"
 INSTALLDIR="Insaniquarium Deluxe"
 GAMEDIR="$STEAM/steamapps/common/$INSTALLDIR"
-APP="/Applications/Insaniquarium.app"
+# INSANIQ_TEST_APPS_DIR: test hook (never set in normal use) for sandbox runs.
+APP="${INSANIQ_TEST_APPS_DIR:-/Applications}/Insaniquarium.app"
 SAVER="$HOME/Library/Screen Savers/Insaniquarium.saver"
 PORTHOME="$HOME/Library/Application Support/Insaniquarium-port"
 ASSET_DIRS=(images sounds music fishsongs data properties)
@@ -43,6 +45,23 @@ die()   { echo "error: $*" >&2; exit 1; }
 ask()   { [ "${NONINTERACTIVE:-0}" = 1 ] && return 0; local a; read -r -p "$1 [y/N] " a; [ "$a" = y ] || [ "$a" = Y ]; }
 pause() { read -r -p "$1 (press Enter) " _; }
 
+# What to tell people to run again. The one-line installer (update.sh, also
+# published as install.sh) sets this, because its users never see a setup.sh.
+RERUN_HINT="${INSANIQ_RERUN:-rerun ./setup.sh}"
+# macOS 13 renamed System Preferences to System Settings and moved its panes.
+MACOS_MAJOR="$(sw_vers -productVersion)"; MACOS_MAJOR="${MACOS_MAJOR%%.*}"
+if [ "$MACOS_MAJOR" -ge 13 ]; then
+  SETTINGS="System Settings"; FDA_PANE="Privacy & Security > Full Disk Access"
+  SAVER_PANE="Screen Saver"; FDA_UNLOCK=""
+  # macOS 26 has no Screen Saver pane: it sits behind a button in Wallpaper.
+  [ "$MACOS_MAJOR" -ge 26 ] && SAVER_PANE="Wallpaper > Screen Saver... > Other > Show All"
+else
+  SETTINGS="System Preferences"; FDA_PANE="Security & Privacy > Privacy > Full Disk Access"
+  SAVER_PANE="Desktop & Screen Saver > Screen Saver"
+  FDA_UNLOCK="   (Click the lock at the bottom left first and enter your password.)
+"
+fi
+
 # Copy that never truncates the destination inode: write a temp beside it, then
 # rename over. Safe even when the destination is a script currently being read
 # (e.g. update.sh refreshing itself), because the old inode survives open fds.
@@ -53,13 +72,20 @@ atomic_copy() { # src dest
 
 steam_running() { pgrep -x steam_osx >/dev/null; }
 
+# Release builds carry both CPUs and target macOS 12 (Steam's own minimum).
+check_mac() {
+  case "$(uname -m)" in arm64|x86_64) ;; *) die "unsupported CPU: $(uname -m)";; esac
+  local v; v="$(sw_vers -productVersion)"
+  [ "${v%%.*}" -ge 12 ] || die "this port needs macOS 12 or later (this Mac has $v)"
+}
+
 quit_steam() {
   steam_running || return 0
-  ask "Steam is running and must be quit - quit it now?" || die "quit Steam, then rerun"
+  ask "Steam is running and must be quit - quit it now?" || die "quit Steam, then $RERUN_HINT"
   osascript -e 'quit app "Steam"' >/dev/null 2>&1 || true
   local i
   for i in $(seq 1 30); do steam_running || return 0; sleep 1; done
-  die "Steam did not quit; quit it manually and rerun"
+  die "Steam did not quit; quit it yourself, then $RERUN_HINT"
 }
 
 valid_assets() {
@@ -70,22 +96,22 @@ valid_assets() {
 
 preflight() {
   say "[0/6] Preflight"
-  [ "$(uname -m)" = arm64 ] || die "this port is Apple Silicon (arm64) only"
+  check_mac
   [ "${EUID:-$(id -u)}" -ne 0 ] || die "do not run as root"
   if ! xcode-select -p >/dev/null 2>&1; then
     echo "Apple's Command Line Tools are required (python3$([ "$MODE" = source ] && echo ", compilers"))."
-    echo "A system dialog will open - click Install, wait for it, then RERUN ./setup.sh."
+    echo "A system dialog will open - click Install, wait for it, then $RERUN_HINT."
     xcode-select --install || true
     exit 1
   fi
   python3 -c 'import hashlib' 2>/dev/null || die "python3 not working - reinstall the Command Line Tools"
-  [ -f "$APPINFO" ] || die "Steam not found or never signed in ($APPINFO missing) - install Steam, sign in, rerun"
+  [ -f "$APPINFO" ] || die "Steam not found or never signed in ($APPINFO missing) - install Steam, sign in, then $RERUN_HINT"
   if ! python3 "$SP/edit_appinfo.py" show "$APPINFO" >/dev/null 2>&1; then
-    cat <<'MSG'
+    cat <<MSG
 Steam has no cached record of Insaniquarium (appid 3320) yet.
 Fix: open Steam, find "Insaniquarium! Deluxe" in your Library (enable the
 family-sharing filters if it's a shared game), open its page once, quit
-Steam, then rerun ./setup.sh.
+Steam, then $RERUN_HINT.
 MSG
     exit 1
   fi
@@ -94,14 +120,15 @@ MSG
 
 bootstrap_source() {
   say "[0.5/6] Toolchain + source"
-  if ! command -v brew >/dev/null 2>&1 && [ -x /opt/homebrew/bin/brew ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-  fi
+  local b
+  for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    if ! command -v brew >/dev/null 2>&1 && [ -x "$b" ]; then eval "$("$b" shellenv)"; fi
+  done
   if ! command -v brew >/dev/null 2>&1; then
     echo "Homebrew is required to build. This runs the official installer from brew.sh."
     ask "Install Homebrew now?" || die "install Homebrew (https://brew.sh), then rerun"
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    eval "$(/opt/homebrew/bin/brew shellenv)"
+    for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do [ -x "$b" ] && eval "$("$b" shellenv)" && break; done
   fi
   brew install "${BREW_DEPS[@]}"
   # The game source is vendored in-tree (WinFish/ + PvZ-Portable/). Old checkouts
@@ -215,7 +242,7 @@ MSG
     echo "Game files not in '$GAMEDIR' yet (attempt $attempt) - retrying."
   done
   die "Steam didn't download the game files. Options:
-  - rerun ./setup.sh to try again
+  - $RERUN_HINT to try again
   - owners (not family-shared): ./setup.sh --console-fetch
   - last resort: ./setup.sh --assets <path to an Insaniquarium Deluxe folder>"
 }
@@ -235,7 +262,7 @@ graft_assets() {
 }
 
 build_from_source() {
-  say "[4/6] Building from source (a few minutes on an M-series Mac)"
+  say "[4/6] Building from source (a few minutes)"
   cmake -G Ninja -S "$BASE" -B "$BASE/build" \
     -DINSANIQUARIUM_ASSETS_DIR="$ASSETS_SRC"
   cmake --build "$BASE/build" --target insaniquarium insaniquarium-saver
@@ -258,22 +285,24 @@ manual_tail() {
   cat <<MSG
 1) FULL DISK ACCESS - stops a recurring "access data from other apps" prompt
    (the game and the screensaver share your tank through a sandboxed folder):
-   System Settings will open on Privacy & Security > Full Disk Access.
-   If Insaniquarium is already listed, select it and click "-" first.
+   $SETTINGS will open on $FDA_PANE.
+${FDA_UNLOCK}   If Insaniquarium is already listed, select it and click "-" first.
    Then click "+", press Cmd+Shift+G, type "/Applications/Insaniquarium.app",
-   add it, and make sure its toggle is ON.
+   add it, and make sure it is switched on.
 MSG
   if ask "Open Full Disk Access settings now?"; then
     open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" || true
     pause "Done?"
   fi
-  cat <<'MSG'
-2) SCREENSAVER: System Settings > Screen Saver > pick "Insaniquarium".
+  local later='Run "./setup.sh verify" any time to health-check the install.'
+  [ -n "${INSANIQ_RERUN:-}" ] && later="Updates: in the game, open Options > Check Updates."
+  cat <<MSG
+2) SCREENSAVER: $SETTINGS > $SAVER_PANE > pick "Insaniquarium".
    (macOS may ask once to allow the legacy screen saver engine.)
 
 All set! Start Steam and hit Play on Insaniquarium! Deluxe - the native app
 launches, Shift+Tab opens the Steam overlay, and the screensaver shows your
-actual tank. Run "./setup.sh verify" any time to health-check the install.
+actual tank. $later
 MSG
 }
 
@@ -331,16 +360,16 @@ update_verify() {
 }
 
 update_fda_tail() {
-  cat <<'MSG'
+  cat <<MSG
 
 Note: updating the app changes its code signature, which clears its Full Disk
 Access grant. Until you re-grant it, the game shows an "access data from other
 apps" prompt on launch (clicking Allow works each time). To silence it until the
 next update:
-  System Settings > Privacy & Security > Full Disk Access - if Insaniquarium is
+  $SETTINGS > $FDA_PANE - if Insaniquarium is
   already listed, select it and click "-" (switching it off and on does not
   refresh the old grant). Then click "+", press Cmd+Shift+G, type
-  /Applications/Insaniquarium.app, add it, and make sure its toggle is ON.
+  /Applications/Insaniquarium.app, add it, and make sure it is switched on.
 MSG
   echo "If Steam was running, quit and reopen it to load the app-bundle launch entry."
   # Never pop System Settings during an unattended in-app update relaunch.
@@ -352,7 +381,7 @@ MSG
 update_install() {
   say "Updating Insaniquarium in place (saves & Steam wiring stay untouched)"
   trap update_cleanup EXIT
-  [ "$(uname -m)" = arm64 ] || die "this port is Apple Silicon (arm64) only"
+  check_mac
   [ "${EUID:-$(id -u)}" -ne 0 ] || die "do not run as root"
   [ "$MODE" = payload ] || die "update needs a release tarball; for a source checkout: git pull && ./setup.sh"
   [ -x "$APP/Contents/MacOS/insaniquarium" ] || die "no existing install at $APP - run the full ./setup.sh first"
@@ -361,7 +390,7 @@ update_install() {
   if pgrep -f legacyScreenSaver >/dev/null; then
     echo "The screensaver engine is active (a running saver or the System Settings"
     echo "Screen Saver preview) and holds the .saver open."
-    ask "Close it and continue? (say n to abort, close it, and rerun)" || die "close the screensaver/preview, then rerun"
+    ask "Close it and continue? (say n to abort, close it, and rerun)" || die "close the screensaver/preview, then $RERUN_HINT"
   fi
 
   # The payload is asset-free, so stash the installed game assets and re-graft
@@ -401,7 +430,7 @@ verify_install() {
   chk "app signature"        'codesign --verify --deep --strict "$APP"'
   chk "saver installed"      '[ -d "$SAVER" ]'
   chk "saver assets present" 'valid_assets "$SAVER/Contents/Resources"'
-  chk "saver relocatable"    '! otool -L "$SAVER/Contents/MacOS/Insaniquarium" | grep -q /opt/homebrew'
+  chk "saver relocatable"    '! otool -L "$SAVER/Contents/MacOS/Insaniquarium" | awk "/^\t/{print \$1}" | grep -qvE "^(/usr/lib/|/System/Library/|@)"'
   chk "appinfo injected"     'python3 "$editpy" show "$APPINFO" | grep -Fq "Insaniquarium.app"'
   chk "launch symlink"       '[ -L "$GAMEDIR/Insaniquarium.app" ] && [ "$(readlink "$GAMEDIR/Insaniquarium.app")" = "$APP" ] && [ -x "$GAMEDIR/Insaniquarium.app/Contents/MacOS/insaniquarium" ]'
   chk "app manifest"         'grep -q "\"StateFlags\"[[:space:]]*\"4\"" "$STEAM/steamapps/appmanifest_3320.acf"'

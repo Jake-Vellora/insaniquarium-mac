@@ -24,7 +24,8 @@ for d in images sounds music fishsongs data properties; do
 	cp -R "$BUILD/assets/$d" "$APP/Contents/Resources/$d"
 done
 
-# Bundle Homebrew dylibs and re-sign (ad-hoc; required on arm64)
+# Bundle non-system dylibs (Homebrew's, or the audio dylibs from build/deps)
+# and re-sign (ad-hoc; required on arm64)
 dylibbundler -of -cd -b \
 	-x "$APP/Contents/MacOS/insaniquarium" \
 	-d "$APP/Contents/Frameworks" \
