@@ -7,6 +7,7 @@
 # Usage: make-dist.sh [--no-source]
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source scripts/macho-checks.sh
 
 NOSOURCE=0; RELEASE_TAG=""
 while [ $# -gt 0 ]; do
@@ -66,8 +67,11 @@ fi
 # 5. Gates: fail loudly rather than ship a broken or non-clean tarball
 for b in Insaniquarium.app Insaniquarium.saver; do
 	codesign --verify --deep --strict "$DIST/payload/$b"
-	if otool -L "$DIST/payload/$b/Contents/MacOS/"* | grep -q /opt/homebrew; then
-		echo "error: $b links /opt/homebrew dylibs - not relocatable"; exit 1
+	# Every binary must be universal, run on macOS 12, and load nothing from
+	# outside macOS and the bundle. A Homebrew build fails here: releases are
+	# built against scripts/build-deps.sh (cmake -DINSANIQ_DEPS_DIR=...).
+	if ! bundle_release_problems "$DIST/payload/$b" >&2; then
+		echo "error: $b is not a universal, relocatable macOS $RELEASE_MINOS build (see above)"; exit 1
 	fi
 	for d in images sounds music fishsongs data properties; do
 		if [ -e "$DIST/payload/$b/Contents/Resources/$d" ]; then

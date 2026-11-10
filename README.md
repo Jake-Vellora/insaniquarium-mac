@@ -1,34 +1,75 @@
-# Insaniquarium! Deluxe: native Apple Silicon port
+# Paste and run this in Terminal to install!
 
-Run the Steam release of **Insaniquarium! Deluxe** (appid 3320) **natively on
-Apple Silicon**: a real ARM64 Mac app, no Wine, no Rosetta, launched from the
-**real Steam Play button**, with the Steam overlay (Shift+Tab), playtime
-tracking, and a native **macOS screensaver** that renders your actual virtual
-tank (and pays out its coins back into your game).
-
-```
-git clone https://github.com/Jake-Vellora/insaniquarium-mac.git
-cd insaniquarium-mac
-./setup.sh
+```bash
+curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/install.sh | bash
 ```
 
-One command. It builds everything locally and walks you through the rest.
+**Before you paste it**
 
-> **Before you run it:** be signed in to Steam with *Insaniquarium! Deluxe*
-> visible in your Library (family-shared counts), and open the game's library
-> page once. **Don't click Install**; the script does that part itself.
-> Full walkthrough in [Setup, step by step](#setup-step-by-step).
+- You need a Mac on macOS 12 or later. Apple Silicon and Intel both work.
+- Steam is installed and you are signed in, and **Insaniquarium! Deluxe** is in
+  your Steam Library (bought, or family-shared: turn on the shared-games filter
+  to see it).
+- Open the game's page in your Steam Library once. **Don't click Install**; the
+  installer does that part.
+
+**What happens when you run it**
+
+1. Open **Terminal** (press Cmd+Space, type `Terminal`, press Return), paste the
+   command and press Return.
+2. First time on a Mac only: if a box asks to install the **command line
+   developer tools**, click **Install**, wait for it to finish, then paste the
+   command again.
+3. It downloads the Mac version (about 17 MB) and checks the download is intact.
+4. If Steam is open, it asks `quit it now? [y/N]`: type `y` and press Return. If
+   macOS asks whether Terminal may control Steam, click **OK**.
+5. Steam opens by itself and downloads the game files (about 11 MB), then shows a
+   **"missing executable"** error. That's expected: close it. When it asks to
+   quit Steam again, type `y` and press Return.
+6. It asks `Open Full Disk Access settings now? [y/N]`: type `y`. In the window
+   that opens, click **+** (enter your password if asked), press
+   **Cmd+Shift+G**, type `/Applications/Insaniquarium.app`, press Return and
+   click **Open**. Make sure Insaniquarium is switched on, then go back to
+   Terminal and press Return.
+7. When it says **All set!**, open Steam and click **Play** on
+   *Insaniquarium! Deluxe*.
+
+**Optional, the screensaver** (it shows your actual tank): System Settings >
+Wallpaper > Screen Saver... > scroll down to Other > Show All > Insaniquarium >
+Done. On macOS 13 to 15 it is under System Settings > Screen Saver, and on
+macOS 12 under System Preferences > Desktop & Screen Saver.
+
+**Updates** install from inside the game: Options > Check Updates. Pasting the
+command again also updates you (quit the game first).
+
+If it stops with an error, the message says what to do. Then paste the command
+again.
+
+---
+
+## About
+
+Runs the Steam release of **Insaniquarium! Deluxe** (appid 3320) **natively on
+a Mac**, Apple Silicon or Intel: a real universal Mac app, no Wine, no
+Rosetta, launched from the **real Steam Play button**, with the Steam overlay
+(Shift+Tab), playtime tracking, and a native **macOS screensaver** that
+renders your actual virtual tank (and pays out its coins back into your game).
 
 ## Requirements
 
-- Apple Silicon Mac (M1 or newer)
+- A Mac running macOS 12 Monterey or later, Apple Silicon or Intel (the same
+  minimum as the Steam client). The Intel half of the app has been tested
+  under Rosetta on Apple Silicon, but not yet on a real Intel Mac.
 - **Insaniquarium! Deluxe in your Steam library**, owned or via Family
   Sharing. This repo contains **no game content whatsoever**; during setup
   your own Steam client downloads the game files under your own license.
-- Xcode Command Line Tools and [Homebrew](https://brew.sh) (setup.sh installs
-  or prompts for both if missing)
+- Apple's Command Line Tools (the installer asks for them if they are missing).
 
-## Setup, step by step
+## Build from source instead
+
+For developers: this builds the game on your Mac with
+[Homebrew](https://brew.sh) libraries instead of downloading the release.
+Players should use the command at the top.
 
 1. **Steam first**: install Steam, sign in, and make sure *Insaniquarium!
    Deluxe* appears in your Library (owned or family-shared; enable the
@@ -50,7 +91,7 @@ One command. It builds everything locally and walks you through the rest.
 4. The script finishes with two things macOS makes you do by hand:
    - **Full Disk Access** for `/Applications/Insaniquarium.app` (System
      Settings opens for you; stops a recurring permission prompt).
-   - **System Settings → Screen Saver** → pick *Insaniquarium*.
+   - The **screensaver**: see the screensaver path near the top of this page.
 5. Open Steam, hit **Play**. Shift+Tab is the overlay; the screensaver is
    your actual tank, and its coin earnings flow back into the game.
 
@@ -100,7 +141,10 @@ always safe to rerun.
 
 ## After setup
 
-- `./setup.sh verify`: health-check every piece (also prints the release marker)
+- If Steam ever shows Install or "Available for Windows" instead of Play, quit
+  Steam and reopen it. Don't click Install or "Verify integrity" on the game.
+- `./setup.sh verify` (in a source checkout or an unpacked release folder):
+  health-check every piece (also prints the release marker)
 - `scripts/steam-play-button/uninstall.sh`: full uninstall (`--purge-saves`
   to also remove save data)
 - Don't force-kill the game (Steam will think it's still running); quit it
@@ -130,7 +174,15 @@ All methods preserve saves, Steam wiring, and screensaver selection.
 - **Built from source** (this repo): `git pull && ./setup.sh`. The full game
   source is in-tree, so a pull brings every fix.
 
-Maintainer notes: `scripts/release.sh` cuts a release (gates on a clean `main`
+Maintainer notes: releases are universal builds. Run `scripts/build-deps.sh`
+once (it builds SDL2, libpng, libjpeg-turbo, ogg, vorbis, libopenmpt and
+mpg123 from pinned, checksummed sources for both CPUs at macOS 12, into
+`build/deps/universal`), then configure with
+`cmake -G Ninja -B build -DINSANIQ_DEPS_DIR="$PWD/build/deps/universal"`.
+`make-dist.sh` refuses any binary that is not universal, needs a macOS newer
+than 12, or loads a library from outside macOS and the bundle, so a Homebrew
+build (still fine for development) cannot be released by accident.
+`scripts/release.sh` cuts a release (gates on a clean `main`
 in sync with origin, builds the slim tarball, tags, and uploads the tarball,
 `.sha256`, and `update.sh`). Release notes come from the matching
 `## <version>` section of `CHANGELOG.md`; the script refuses to release
