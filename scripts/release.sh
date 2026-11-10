@@ -62,13 +62,13 @@ trap 'rm -f "$NOTES"' EXIT
   echo "**New here? Paste this into Terminal to install** (Apple Silicon or Intel, macOS 12 or later):"
   echo
   echo '```'
-  echo "curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/install.sh | bash"
+  echo "curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/releases/latest/download/install.sh | bash"
   echo '```'
   echo
   echo "Update an existing install with one command (quit the game first; Steam can stay open):"
   echo
   echo '```'
-  echo "curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash"
+  echo "curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/releases/latest/download/update.sh | bash"
   echo '```'
   echo
   echo "Your saves, Steam Play button, and screensaver selection are preserved."
@@ -102,13 +102,13 @@ gh release create "$TAG" \
   "$TARBALL.sha256" \
   "scripts/steam-play-button/update.sh" \
   "$INSTALLER_DIR/install.sh" \
-  --repo Jake-Vellora/insaniquarium-mac \
+  --repo Dangerous-J-Dev/insaniquarium-mac \
   --title "Insaniquarium Mac $TAG" \
   --notes-file "$NOTES"
 
 echo
 echo "released $TAG"
 echo "new users install with:"
-echo "  curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/install.sh | bash"
+echo "  curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/releases/latest/download/install.sh | bash"
 echo "users update with:"
-echo "  curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash"
+echo "  curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/releases/latest/download/update.sh | bash"

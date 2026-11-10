@@ -2686,8 +2686,8 @@ void Sexy::WinFishApp::BeginInAppUpdate()
 		DoDialog(DIALOG_INFO, true, "Update",
 			"Couldn't start the updater automatically.\n\n"
 			"To update, quit and run this in Terminal:\n"
-			"curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/"
-			"releases/latest/download/update.sh | bash",
+			"curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/"
+			"releases/latest/download/install.sh | bash",
 			"OK", Dialog::BUTTONS_FOOTER);
 		return;
 	}
