@@ -40,7 +40,9 @@ Done. On macOS 13 to 15 it is under System Settings > Screen Saver, and on
 macOS 12 under System Preferences > Desktop & Screen Saver.
 
 **Updates** install from inside the game: Options > Check Updates. Pasting the
-command again also updates you (quit the game first).
+command again also updates you (quit the game first). **On 1.1.11 or earlier?**
+Paste the command once: the updater in those versions cannot reach the
+project's new address, so their Update Now does nothing.
 
 If it stops with an error, the message says what to do. Then paste the command
 again.
@@ -184,9 +186,9 @@ than 12, or loads a library from outside macOS and the bundle, so a Homebrew
 build (still fine for development) cannot be released by accident.
 Updaters from 1.2.0 on find the repository by its permanent ID, so renames
 can't break them. Copies installed before the account rename (1.1.11 and
-earlier) still ask for `Jake-Vellora/insaniquarium-mac` by name: right after
-the first by-ID release, run `scripts/publish-bridge.sh <tag>` once from the
-`Jake-Vellora` account (see the script) so they can update themselves.
+earlier) ask for `Jake-Vellora/insaniquarium-mac` by name and only trust files
+listed under it; GitHub has retired that name, so no bridge can be published
+there, and those players update by running the install command once.
 `scripts/release.sh` cuts a release (gates on a clean `main`
 in sync with origin, builds the slim tarball, tags, and uploads the tarball,
 `.sha256`, and `update.sh`). Release notes come from the matching

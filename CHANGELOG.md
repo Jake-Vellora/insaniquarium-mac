@@ -17,10 +17,12 @@ language (what changed and why they care, not commit subjects).
 - Installing is now one command. Paste it into Terminal and it downloads the
   game, checks the download, and walks you through the rest. The command is at
   the top of the project page.
-- Updates keep working after the project moved to a new GitHub address. Copies
-  from before the move are updated once through the old address, and from then
-  on the game and the updater find the project in a way a future move cannot
-  break.
+- On 1.1.11 or earlier, paste the install command into Terminal once to get
+  this version. The project moved to a new GitHub address, and the updater built
+  into older copies cannot follow it, so their Update Now button does nothing.
+  The install command updates an existing install and keeps your saves. From
+  this version on, the game and the updater find the project in a way a future
+  move cannot break.
 - Setup now sends you to the right place for the screensaver on each version of
   macOS. On macOS 26 it is under Wallpaper, behind the Screen Saver button.
 
