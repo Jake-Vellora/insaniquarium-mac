@@ -3,7 +3,7 @@
 # Silicon and Intel, macOS 12 or later). Every release publishes this same file
 # twice, as install.sh and as update.sh. Paste into Terminal:
 #
-#   curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/install.sh | bash
+#   curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/releases/latest/download/install.sh | bash
 #
 # Not installed yet: downloads the latest release, checks its checksum, and runs
 # its setup.sh, which walks you through the one-time setup.
@@ -18,11 +18,15 @@
 # Updating quits nothing: just make sure the GAME is closed (Steam may stay open).
 set -euo pipefail
 
-REPO="Jake-Vellora/insaniquarium-mac"
+# The repository by its permanent GitHub ID, not by owner/name: renaming the
+# account or the repo can't break updates, and nobody who registers a freed
+# old name can pass for it. (1.1.11 and earlier asked for
+# Jake-Vellora/insaniquarium-mac by name; that account was renamed.)
+REPO_ID=1304620310
 # Test hooks (never set in normal use): point the release lookup at a local
 # stand-in for GitHub, and keep a sandbox run away from /Applications.
-API="${INSANIQ_TEST_RELEASE_API:-https://api.github.com/repos/$REPO/releases/latest}"
-ASSET_PREFIX="${INSANIQ_TEST_ASSET_PREFIX:-https://github.com/$REPO/}"
+API="${INSANIQ_TEST_RELEASE_API:-https://api.github.com/repositories/$REPO_ID/releases/latest}"
+ASSET_HOST="${INSANIQ_TEST_ASSET_HOST:-https://github.com}"
 APP="${INSANIQ_TEST_APPS_DIR:-/Applications}/Insaniquarium.app"
 PORTHOME="$HOME/Library/Application Support/Insaniquarium-port"
 GAME_PGREP='Insaniquarium.app/Contents/MacOS|Insaniquarium Deluxe/insaniquarium'
@@ -117,7 +121,7 @@ else
   # Parse the JSON with python3 (always present via the CLT). It writes shell
   # assignments to a file we source - avoids a heredoc-in-$() that trips the
   # macOS system bash.
-  python3 - "$WORK/release.json" "$ASSET_PREFIX" > "$WORK/parsed.sh" <<'PY'
+  python3 - "$WORK/release.json" "$ASSET_HOST" > "$WORK/parsed.sh" <<'PY'
 import json, sys, re
 def q(v): return "'" + str(v).replace("'", "'\\''") + "'"
 try:
@@ -126,11 +130,13 @@ except Exception:
     print('PARSE_OK=0'); sys.exit(0)
 tag = r.get('tag_name') or ''
 tar = sha = ''
+# The JSON came from this repository's own ID, so its assets are this repo's;
+# only accept them as GitHub release downloads (any owner name: renames).
+asset_url = re.compile(re.escape(sys.argv[2]) + r'/[^/]+/[^/]+/releases/download/[^/]+/[^/]+')
 for a in r.get('assets', []):
     n = a.get('name', '')
     u = a.get('browser_download_url', '')
-    # only trust assets served from this repo's own release download host
-    if not u.startswith(sys.argv[2]):
+    if not asset_url.fullmatch(u):
         continue
     if re.fullmatch(r'insaniquarium-mac-.*\.tar\.gz', n):
         tar = u

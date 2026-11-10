@@ -55,7 +55,7 @@ by hand): **quit the game first** (Steam can stay open), then paste this into
 Terminal:
 
 ```
-curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash
+curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/releases/latest/download/update.sh | bash
 ```
 
 Or double-click **Update Insaniquarium.command** in this folder (the first time,

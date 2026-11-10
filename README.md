@@ -1,7 +1,7 @@
 # Paste and run this in Terminal to install!
 
 ```bash
-curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/install.sh | bash
+curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/releases/latest/download/install.sh | bash
 ```
 
 **Before you paste it**
@@ -77,7 +77,7 @@ Players should use the command at the top.
    the game's record. **Don't click Install**; the script handles that.
 2. Open Terminal and run:
    ```
-   git clone https://github.com/Jake-Vellora/insaniquarium-mac.git
+   git clone https://github.com/Dangerous-J-Dev/insaniquarium-mac.git
    cd insaniquarium-mac
    ./setup.sh
    ```
@@ -160,7 +160,7 @@ All methods preserve saves, Steam wiring, and screensaver selection.
 - **From a release tarball**, which is also the one-time way to get onto a
   version that has the in-app updater: quit the game and run
   ```
-  curl -fsSL https://github.com/Jake-Vellora/insaniquarium-mac/releases/latest/download/update.sh | bash
+  curl -fsSL https://github.com/Dangerous-J-Dev/insaniquarium-mac/releases/latest/download/update.sh | bash
   ```
   (or double-click `Update Insaniquarium.command`). It downloads the latest
   release, re-grafts your existing game assets onto the new build, and swaps it
@@ -182,6 +182,11 @@ mpg123 from pinned, checksummed sources for both CPUs at macOS 12, into
 `make-dist.sh` refuses any binary that is not universal, needs a macOS newer
 than 12, or loads a library from outside macOS and the bundle, so a Homebrew
 build (still fine for development) cannot be released by accident.
+Updaters from 1.2.0 on find the repository by its permanent ID, so renames
+can't break them. Copies installed before the account rename (1.1.11 and
+earlier) still ask for `Jake-Vellora/insaniquarium-mac` by name: right after
+the first by-ID release, run `scripts/publish-bridge.sh <tag>` once from the
+`Jake-Vellora` account (see the script) so they can update themselves.
 `scripts/release.sh` cuts a release (gates on a clean `main`
 in sync with origin, builds the slim tarball, tags, and uploads the tarball,
 `.sha256`, and `update.sh`). Release notes come from the matching

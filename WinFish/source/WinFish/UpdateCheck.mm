@@ -54,7 +54,9 @@ std::string ReadFileTrimmed(const std::string &path) {
 NSString *ApiURL() {
 	const char *ovr = getenv("INSANIQ_UPDATE_API"); // test override
 	if (ovr && *ovr) return [NSString stringWithUTF8String:ovr];
-	return @"https://api.github.com/repos/Jake-Vellora/insaniquarium-mac/releases/latest";
+	// By the repository's permanent ID, not owner/name: a renamed account or
+	// repo can't break the check, and nobody on a freed old name can pass for it.
+	return @"https://api.github.com/repositories/1304620310/releases/latest";
 }
 
 } // namespace
